@@ -6,15 +6,15 @@ import { FaYoutube } from "react-icons/fa";
 function SocialNetwork() {
     return (
         <div>
-            <div className="flex justify-center items-center gap-4 mt-4">
+            <div className="flex justify-center items-center gap-4">
                 <a href="https://www.instagram.com/oljkinakucnaradionica/?hl=sr" target="_blank" rel="noopener noreferrer">
-                    <FaInstagram className="text-2xl text-pink-500 hover:text-pink-700 transition-colors" />
+                    <FaInstagram className="lg:text-2xl text-xl hover:text-pink-700 transition-colors" />
                 </a>
                 <a href="https://www.facebook.com/oljka.rs" target="_blank" rel="noopener noreferrer">
-                    <FaFacebook className="text-2xl text-blue-600 hover:text-blue-800 transition-colors" />
+                    <FaFacebook className="lg:text-2xl text-xl hover:text-blue-800 transition-colors" />
                 </a>
                 <a href="https://www.youtube.com/c/Oljkinakucnaradionica" target="_blank" rel="noopener noreferrer">
-                    <FaYoutube className="text-2xl text-red-600 hover:text-red-800 transition-colors" />
+                    <FaYoutube className="lg:text-2xl text-xl hover:text-red-800 transition-colors" />
                 </a>
             </div>
         </div>
