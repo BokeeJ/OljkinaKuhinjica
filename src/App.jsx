@@ -1,19 +1,22 @@
-import React from "react"
-// komponents
-import Header from "./Components/Header"
-import NavBar from "./Components/NavBar"
-function App() {
+import React, { useState, useEffect } from "react";
+import Header from "./Components/Header";
+import NavBar from "./Components/NavBar";
+import { Outlet } from "react-router-dom";
 
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("token"));
+  }, []);
 
   return (
     <div>
       <Header />
-      <NavBar />
-      <h1
-        className="bg-pink-400 m-10">Cao Oljkaa! Ovde mozes pratiti sve sta radim i kad radim...sportski pozdrav od Zeca
-      </h1>
+      <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+      <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
