@@ -5,6 +5,8 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearch } from './Context/SearchContext';
 import SearchResults from './Components/SearchResults';
+import YouTubeMusic from './Pages/YouTubeMusic';
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
@@ -49,6 +51,7 @@ function App() {
     <div className="relative">
       <Header />
       <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+      <YouTubeMusic />
       <SearchResults
         onClearInput={() => {
 
@@ -56,7 +59,7 @@ function App() {
         }}
 
         isMobile={false}
-        className="flex justify-center items-center flex-col"
+        className="flex justify-center items-center flex-col z-50"
       />
       <AnimatePresence mode="wait">
         <motion.div

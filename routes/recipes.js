@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ✅ 7. Najpopularniji recepti (sortirani po lajkovima)
+// ✅ 7. Najpopularniji recepti
 router.get('/popular', async (req, res) => {
     try {
         const popularni = await Recipe.find().sort({ likes: -1 });
@@ -35,6 +35,17 @@ router.get('/category/:category', async (req, res) => {
     }
 });
 
+// ✅ 9. POSLEDNJIH 5 RECEPATA (MORA BITI OVDE!)
+router.get('/latest', async (req, res) => {
+    try {
+        const poslednji = await Recipe.find().sort({ createdAt: -1 }).limit(5);
+        res.json(poslednji);
+    } catch (err) {
+        console.error('❌ Greška u /latest ruti:', err);
+        res.status(500).json({ error: 'Greška pri preuzimanju poslednjih 5 recepata' });
+    }
+});
+
 // ✅ 2. Pojedinačan recept
 router.get('/:id', async (req, res) => {
     try {
@@ -44,6 +55,7 @@ router.get('/:id', async (req, res) => {
         }
         res.json(recipe);
     } catch (err) {
+        console.error('❌ Greška pri preuzimanju recepta:', err);
         res.status(500).json({ error: 'Greška pri preuzimanju recepta' });
     }
 });
@@ -115,3 +127,4 @@ router.post('/:id/dislike', async (req, res) => {
 });
 
 export default router;
+

@@ -77,11 +77,13 @@ function NavBar() {
 
                 {/* Logo */}
                 <div>
-                    <img
-                        className="lg:w-[200px] lg:h-[200px] w-[140px] h-[140px] rounded-full"
-                        src="/1.svg"
-                        alt="logo"
-                    />
+                    <Link to={'/'}>
+                        <img
+                            className="lg:w-[200px] lg:h-[200px] w-[140px] h-[140px] rounded-full"
+                            src="/1.svg"
+                            alt="logo"
+                        />
+                    </Link>
                 </div>
 
                 {/* Right menu */}
@@ -105,7 +107,7 @@ function NavBar() {
 
             {/* Mobile menu */}
             <div
-                className={`absolute top-[140px] backdrop-blur-3xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`} >
+                className={`absolute top-[140px] backdrop-blur-3xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-50 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`} >
                 <ul className="gap-5 m-2 flex flex-col">
                     <NavLink to="/sviRecepti">Recepti</NavLink>
                     <NavLink to="/omeni">O meni</NavLink>
@@ -130,12 +132,12 @@ function NavBar() {
 
                         <SearchResults
                             onClearInput={() => {
-                                console.log("Klik na rezultat --> brisem searchQuery");
+
                                 setSearchQuery('');
                             }}
                             onResultClick={toggleSearch}
                             isMobile
-                            className='flex justify-center items-center flex-col mt-5'
+                            className='flex justify-center bg-green-50 z-50 items-center flex-col mt-5'
                         />
                     </div>
                 </div>

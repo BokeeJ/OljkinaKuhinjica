@@ -40,7 +40,7 @@ function SearchResults({
             {searchResults.map((r) => (
                 <div
                     key={r._id}
-                    className='block p-2 hover:text-xl transition-all duration-200 flex gap-3 justify-center items-center cursor-pointer'
+                    className='p-2 hover:text-xl transition-all duration-200 flex gap-3 justify-center items-center cursor-pointer'
                     onClick={() => handleResultClick(`/recept/${r._id}`)}>
                     {r.title}
                     <LuCakeSlice color='orange' />

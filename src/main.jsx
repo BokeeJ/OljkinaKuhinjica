@@ -19,6 +19,7 @@ import ReceptDetalji from './Pages/ReceptDetalj.jsx';
 import PopularniRecepti from './Pages/PopularniRecepti.jsx';
 import MyFavorites from './Pages/MyFavorites.jsx';
 import { SearchProvider } from './Context/SearchContext';
+import Pocetna from './Pages/Pocetna.jsx';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
       {
         path: 'favorites',
         element: <MyFavorites />
+      },
+      {
+        path: '/',
+        element: <Pocetna />
       }
 
     ]
