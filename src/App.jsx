@@ -1,20 +1,74 @@
-import React, { useState, useEffect } from "react";
-import Header from "./Components/Header";
-import NavBar from "./Components/NavBar";
-import { Outlet } from "react-router-dom";
-
+import React, { useEffect, useState } from 'react';
+import Header from './Components/Header';
+import NavBar from './Components/NavBar';
+import { Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useSearch } from './Context/SearchContext';
+import SearchResults from './Components/SearchResults';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const { searchQuery, setSearchResults } = useSearch();
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
+    // Provera tokena pri mountovanju
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
   }, []);
 
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (!searchQuery) {
+
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+
+        const res = await fetch("http://localhost:5050/api/recipes");
+        const data = await res.json();
+
+
+        const results = data.filter((r) =>
+          r.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+
+        setSearchResults(results);
+      } catch (error) {
+        console.error("App.jsx -> GRESKA:", error);
+      }
+    };
+    fetchResults();
+  }, [searchQuery, setSearchResults]);
+
+
+
   return (
-    <div>
+    <div className="relative">
       <Header />
       <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-      <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
+      <SearchResults
+        onClearInput={() => {
+
+          setSearchResults([]);
+        }}
+
+        isMobile={false}
+        className="flex justify-center items-center flex-col"
+      />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

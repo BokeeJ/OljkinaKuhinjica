@@ -3,51 +3,52 @@ import { RxHamburgerMenu } from "react-icons/rx";
 import { FaSearch } from 'react-icons/fa';
 import { IoCloseSharp } from "react-icons/io5";
 import { CiHeart } from "react-icons/ci";
-import { Link, NavLink, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import SearchInput from './SearchInput';
+import { useSearch } from "../Context/SearchContext";
+import SearchResults from './SearchResults';
 
-function NavBar({ isLoggedIn, setIsLoggedIn }) {
+function NavBar() {
     const [isOpen, setIsOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
-
-    const navigate = useNavigate();
+    const { searchQuery, setSearchQuery } = useSearch();
+    const location = useLocation();
 
     const toggleMenu = () => {
         setIsOpen(!isOpen);
         setShowSearch(false);
     };
-
     const toggleSearch = () => {
+
         setShowSearch(!showSearch);
         setIsOpen(false);
     };
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        setIsLoggedIn(false);
-        navigate('/');
-    };
-
     useEffect(() => {
         const checkToken = () => {
             const token = localStorage.getItem('token');
-            setIsLoggedIn(!!token);
         };
-
         checkToken();
-
         window.addEventListener('storage', checkToken);
         return () => window.removeEventListener('storage', checkToken);
     }, []);
 
+    // 👇 ZATVARA pretragu kada se promeni ruta
+    useEffect(() => {
+        setShowSearch(false);
+    }, [location]);
+
     return (
         <div className="w-full lg:h-[150px] flex flex-col justify-center items-center relative">
             {/* Favorites bar */}
-            <div className={`w-full h-[300px] top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between 
-            ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`}>
-                <div className='flex p-5'>
-                    <CiHeart size={30} /><h5>Favorites</h5>
-                </div>
+            <div
+                className={`w-full h-[300px] top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`} >
+                <Link
+                    onClick={() => setShowSearch(false)}
+                    to={'/favorites'}>
+                    <div className='flex p-5'>
+                        <CiHeart size={30} /><h5>Favorites</h5>
+                    </div>
+                </Link>
                 <div className='flex p-5'>
                     <IoCloseSharp
                         className={`text-2xl lg:hidden cursor-pointer ${showSearch ? 'flex' : 'hidden'}`}
@@ -58,13 +59,11 @@ function NavBar({ isLoggedIn, setIsLoggedIn }) {
             </div>
 
             {/* Main bar */}
-            <div className="flex justify-between items-center lg:w-[60%] md:w-[70%] w-[80%]">
-                {/* Left menu */}
+            <div className="flex lg:justify-center justify-between items-center lg:w-[60%] md:w-[70%] w-[80%]">
                 <nav>
                     <ul className="lg:flex gap-5 m-5 hidden text-l">
-                        <NavLink to="/sviRecepti">Svi recepti</NavLink>
-                        <NavLink to="/slani">Slano</NavLink>
-                        <NavLink to="/slatki">Slatko</NavLink>
+                        <NavLink to="/sviRecepti">Recepti</NavLink>
+                        <NavLink to="/saradnja">Saradnja</NavLink>
                     </ul>
                     <RxHamburgerMenu
                         onClick={toggleMenu}
@@ -98,12 +97,6 @@ function NavBar({ isLoggedIn, setIsLoggedIn }) {
                     <ul className="lg:flex hidden gap-3 m-5">
                         <NavLink to="/omeni">O meni</NavLink>
                         <NavLink to="/kontakt">Kontakt</NavLink>
-                        <NavLink to="/saradnja">Saradnja</NavLink>
-                        {!isLoggedIn ? (
-                            <NavLink to="/login">Login</NavLink>
-                        ) : (
-                            <button onClick={handleLogout} className="text-red-600">Logout</button>
-                        )}
                     </ul>
                 </nav>
             </div>
@@ -111,30 +104,42 @@ function NavBar({ isLoggedIn, setIsLoggedIn }) {
             <hr className="border border-black w-[80%]" />
 
             {/* Mobile menu */}
-            <div className={`absolute top-[140px] backdrop-blur-3xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
+            <div
+                className={`absolute top-[140px] backdrop-blur-3xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`} >
                 <ul className="gap-5 m-2 flex flex-col">
-                    <NavLink to="/sviRecepti">Svi recepti</NavLink>
-                    <NavLink to="/slani">Slano</NavLink>
-                    <NavLink to="/slatki">Slatko</NavLink>
+                    <NavLink to="/sviRecepti">Recepti</NavLink>
                     <NavLink to="/omeni">O meni</NavLink>
                     <NavLink to="/kontakt">Kontakt</NavLink>
                     <NavLink to="/saradnja">Saradnja</NavLink>
-                    {!isLoggedIn ? (
-                        <NavLink to="/login">Login</NavLink>
-                    ) : (
-                        <button onClick={handleLogout} className="text-red-600 text-left">Logout</button>
-                    )}
                 </ul>
             </div>
 
             {/* Mobile search */}
-            <div className={`fixed left-0 bottom-0 w-full h-[50vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${showSearch ? 'translate-y-0' : 'translate-y-full'}`}>
-                <SearchInput
-                    color={'orange'}
-                    className="border p-2 shadow-2xl shadow-pink-200 rounded-2xl text-orange-300"
-                    placeholder="Pretrazi recept..."
-                />
-            </div>
+            {showSearch && (
+                <div className={`fixed left-0 bottom-0 w-full h-[50vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden`}>
+                    <div className="p-4">
+                        <SearchInput
+                            color={'orange'}
+                            className="border p-2 rounded-2xl text-orange-300 w-full"
+                            placeholder="Pretraži recept..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                            }}
+                        />
+
+                        <SearchResults
+                            onClearInput={() => {
+                                console.log("Klik na rezultat --> brisem searchQuery");
+                                setSearchQuery('');
+                            }}
+                            onResultClick={toggleSearch}
+                            isMobile
+                            className='flex justify-center items-center flex-col mt-5'
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

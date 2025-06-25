@@ -15,7 +15,10 @@ import SviRecepti from './Pages/SviRecepti.jsx';
 import DodajRecept from './Pages/DodajRecept.jsx';
 import AdminPanel from './Components/AdminPanel.jsx';
 import AdminLogin from './Components/AdminLogin.jsx';
-
+import ReceptDetalji from './Pages/ReceptDetalj.jsx';
+import PopularniRecepti from './Pages/PopularniRecepti.jsx';
+import MyFavorites from './Pages/MyFavorites.jsx';
+import { SearchProvider } from './Context/SearchContext';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -56,6 +59,18 @@ const router = createBrowserRouter([
       {
         path: 'login',
         element: <AdminLogin />
+      },
+      {
+        path: 'recept/:id',
+        element: <ReceptDetalji />
+      },
+      {
+        path: 'popularni',
+        element: <PopularniRecepti />
+      },
+      {
+        path: 'favorites',
+        element: <MyFavorites />
       }
 
     ]
@@ -64,6 +79,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <SearchProvider>
+      <RouterProvider router={router} />
+    </SearchProvider>
   </StrictMode>,
 )

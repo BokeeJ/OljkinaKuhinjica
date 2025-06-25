@@ -26,6 +26,8 @@ function DodajRecept() {
         formData.append('description', form.description);
         formData.append('category', form.category);
         formData.append('image', form.image);
+        formData.append('createdAt', new Date().toISOString());
+
 
         try {
             const res = await axios.post('http://localhost:5000/api/recipes', formData, {
