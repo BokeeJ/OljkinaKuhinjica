@@ -32,7 +32,7 @@ function NavBar() {
         return () => window.removeEventListener('storage', checkToken);
     }, []);
 
-    // 👇 ZATVARA pretragu kada se promeni ruta
+
     useEffect(() => {
         setShowSearch(false);
     }, [location]);
@@ -118,7 +118,7 @@ function NavBar() {
 
             {/* Mobile search */}
             {showSearch && (
-                <div className={`fixed left-0 bottom-0 w-full h-[50vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden`}>
+                <div className={`fixed left-0 bottom-0 w-full h-[55vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden`}>
                     <div className="p-4">
                         <SearchInput
                             color={'orange'}
@@ -137,7 +137,7 @@ function NavBar() {
                             }}
                             onResultClick={toggleSearch}
                             isMobile
-                            className='flex justify-center bg-green-50 z-50 items-center flex-col mt-5'
+                            className='flex justify-center bg-orange-50 z-50 items-center flex-col mt-5'
                         />
                     </div>
                 </div>

@@ -8,7 +8,7 @@ function Header() {
     const { searchQuery, setSearchQuery } = useSearch();
 
     return (
-        <div className='bg-green-100 w-full h-full flex items-center justify-around relative z-[9999]'>
+        <div className='bg-orange-100 w-full h-full flex items-center justify-around relative z-[9999]'>
             <div className='lg:flex hidden'>
                 <SearchInput
                     value={searchQuery}
