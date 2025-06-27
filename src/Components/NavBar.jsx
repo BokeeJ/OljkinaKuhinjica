@@ -119,7 +119,7 @@ function NavBar() {
 
             {/* Mobile search */}
             {showSearch && (
-                <div className="fixed inset-0 bg-white z-[999] overflow-y-auto lg:hidden">
+                <div className="absolute top-[150px] left-0 w-full bg-white z-[999] overflow-y-auto lg:hidden shadow-md">
                     <div className="p-4">
                         <SearchInput
                             color="orange"
