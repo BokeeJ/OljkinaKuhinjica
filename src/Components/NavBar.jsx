@@ -119,7 +119,7 @@ function NavBar() {
 
             {/* Mobile search */}
             {showSearch && (
-                <div className={`fixed left-0 bottom-0 w-full h-[55vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto`}>
+                <div className={`fixed left-0 bottom-0 w-full h-[55vh] bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto max-h-[60vh]`}>
                     <div className="p-4">
                         <SearchInput
                             color={'orange'}
