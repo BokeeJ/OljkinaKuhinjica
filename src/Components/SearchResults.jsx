@@ -35,7 +35,7 @@ function SearchResults({
             className={`
                 ${className}
                 ${isMobile ? 'lg:hidden' : 'hidden lg:block'}
-                 relative top-10 left-0 w-full rounded-xl z-50 
+                 absolute top-10 left-0 w-full rounded-xl z-50 
             `}>
             {searchResults.map((r) => (
                 <div
@@ -45,7 +45,12 @@ function SearchResults({
                     {r.title}
                     <LuCakeSlice color='orange' />
                 </div>
+
             ))}
+            {searchResults.length === 0 && (
+                <p className="text-center text-gray-400">Nema rezultata</p>
+            )}
+
         </div>
     );
 }
