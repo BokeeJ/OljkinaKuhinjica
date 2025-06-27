@@ -119,31 +119,26 @@ function NavBar() {
 
             {/* Mobile search */}
             {showSearch && (
-                <div className="fixed inset-0 bg-white z-50 lg:hidden overflow-y-auto">
+                <div className="fixed inset-0 bg-white z-[999] overflow-y-auto lg:hidden">
                     <div className="p-4">
                         <SearchInput
-                            color={'orange'}
+                            color="orange"
                             className="border p-2 rounded-2xl text-orange-300 w-full"
                             placeholder="Pretraži recept..."
                             value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value);
-                            }}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
 
                         <SearchResults
-                            onClearInput={() => {
-
-                                setSearchQuery('');
-                            }}
+                            onClearInput={() => setSearchQuery('')}
                             onResultClick={toggleSearch}
                             isMobile
-                            className='flex flex-col overflow-y-auto max-h-[35vh] justify-start bg-orange-50 z-50 w-full p-2 rounded-lg mt-5 shadow-md'
-
+                            className="flex flex-col gap-2 mt-4 w-full"
                         />
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

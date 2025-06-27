@@ -33,10 +33,9 @@ function SearchResults({
     return (
         <div
             className={`
-                ${className}
-                ${isMobile ? 'lg:hidden' : 'hidden lg:block'}
-                 absolute top-10 left-0 w-full rounded-xl z-50 
-            `}>
+            ${className}
+            ${isMobile ? 'lg:hidden' : 'hidden lg:block'}
+          `}>
             {searchResults.map((r) => (
                 <div
                     key={r._id}
