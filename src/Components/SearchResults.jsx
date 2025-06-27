@@ -35,7 +35,7 @@ function SearchResults({
             className={`
                 ${className}
                 ${isMobile ? 'lg:hidden' : 'hidden lg:block'}
-                 absolute top-10 left-0 w-full rounded-xl z-50 
+                 relative top-10 left-0 w-full rounded-xl z-50 
             `}>
             {searchResults.map((r) => (
                 <div
