@@ -19,7 +19,7 @@ function AddRecipe({ onRecipeAdded }) {
             setLoading(true);
 
             // 1. Upload slike na Cloudinary
-            const uploadRes = await axios.post('http://localhost:5050/api/upload', formData);
+            const uploadRes = await axios.post('https://kuhinjica-backend-1.onrender.com/api/upload', formData);
             const { url, public_id } = uploadRes.data;
 
             const recipe = {
@@ -33,7 +33,7 @@ function AddRecipe({ onRecipeAdded }) {
             console.log('📦 Šaljem recept:', recipe);
 
             // 2. Slanje recepta u bazu
-            await axios.post('http://localhost:5050/api/recipes', recipe, {
+            await axios.post('https://kuhinjica-backend-1.onrender.com/api/recipes', recipe, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 },

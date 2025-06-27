@@ -38,7 +38,8 @@ function NavBar() {
     }, [location]);
 
     return (
-        <div className="w-full lg:h-[150px] flex flex-col justify-center items-center relative">
+        <div
+            className="w-full lg:h-[150px] flex flex-col justify-center items-center relative">
             {/* Favorites bar */}
             <div
                 className={`w-full h-[300px] top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`} >
@@ -103,7 +104,7 @@ function NavBar() {
                 </nav>
             </div>
 
-            <hr className="border border-black w-[80%]" />
+
 
             {/* Mobile menu */}
             <div

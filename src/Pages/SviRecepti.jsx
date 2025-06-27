@@ -19,7 +19,7 @@ function SviRecepti() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get("http://localhost:5050/api/recipes");
+            const res = await axios.get("https://kuhinjica-backend-1.onrender.com/api/recipes");
             setRecipes(res.data);
         };
         fetchData();

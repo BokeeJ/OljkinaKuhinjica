@@ -10,7 +10,7 @@ function PopularniRecepti() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get("http://localhost:5050/api/recipes/popular");
+            const res = await axios.get("https://kuhinjica-backend-1.onrender.com/api/recipes/popular");
             setRecipes(res.data);
         };
         fetchData();

@@ -12,6 +12,7 @@ function App() {
   const location = useLocation();
   const { searchQuery, setSearchResults } = useSearch();
 
+
   useEffect(() => {
     // Provera tokena pri mountovanju
     const token = localStorage.getItem("token");
@@ -52,17 +53,22 @@ function App() {
       <Header />
       <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
       <YouTubeMusic />
-      <SearchResults
-        onClearInput={() => {
+      <div
+      >
+        <SearchResults
+          onClearInput={() => {
 
-          setSearchResults([]);
-        }}
+            setSearchResults([]);
+          }}
 
-        isMobile={false}
-        className="flex justify-center items-center flex-col z-50"
-      />
+          isMobile={false}
+          className="flex justify-center items-center flex-col z-50 bg-orange-100 ease-in-out duration-300 transition-all transition-transform"
+        />
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div
+          className='mt-6'
           key={location.pathname}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}

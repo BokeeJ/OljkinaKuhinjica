@@ -30,7 +30,7 @@ function DodajRecept() {
 
 
         try {
-            const res = await axios.post('http://localhost:5000/api/recipes', formData, {
+            const res = await axios.post('https://kuhinjica-backend-1.onrender.com/api/recipes', formData, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data'

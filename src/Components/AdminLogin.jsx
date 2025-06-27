@@ -16,7 +16,7 @@ function AdminLogin() {
         console.log('📤 Šaljem:', username, password);
 
         try {
-            const res = await axios.post('http://localhost:5050/api/auth/login', {
+            const res = await axios.post('https://kuhinjica-backend-1.onrender.com/api/auth/login', {
                 username,
                 password
             }, {

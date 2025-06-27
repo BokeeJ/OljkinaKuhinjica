@@ -7,7 +7,7 @@ function AdminDashboard() {
     const handleDelete = async (id) => {
         if (!window.confirm('Da li si siguran da želiš da obrišeš recept?')) return;
         try {
-            await axios.delete(`http://localhost:5050/api/recipes/${id}`);
+            await axios.delete(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`);
             setRecipes((prev) => prev.filter((r) => r._id !== id));
         } catch (err) {
             console.error('❌ Greška pri brisanju:', err.message);
@@ -18,7 +18,7 @@ function AdminDashboard() {
     useEffect(() => {
         const fetchRecipes = async () => {
             try {
-                const res = await axios.get('http://localhost:5050/api/recipes');
+                const res = await axios.get('https://kuhinjica-backend-1.onrender.com/api/recipes');
                 setRecipes(res.data);
             } catch (err) {
                 console.error('❌ Greška pri učitavanju recepata:', err.message);

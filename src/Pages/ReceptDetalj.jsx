@@ -8,7 +8,7 @@ function ReceptDetalji() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get(`http://localhost:5050/api/recipes/${id}`);
+            const res = await axios.get(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`);
             setRecipe(res.data);
         };
         fetchData();

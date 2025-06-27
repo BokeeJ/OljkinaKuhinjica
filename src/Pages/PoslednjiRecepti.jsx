@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { FaArrowRight } from "react-icons/fa";
 
-function PoslednjiRecepti() {
+function PoslednjiRecepti({ className = '' }) {
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -10,7 +10,7 @@ function PoslednjiRecepti() {
     useEffect(() => {
         const fetchLastFive = async () => {
             try {
-                const res = await fetch("http://localhost:5050/api/recipes/latest");
+                const res = await fetch("https://kuhinjica-backend-1.onrender.com/api/recipes/latest");
                 if (!res.ok) {
                     console.error("Greška sa servera:", res.statusText);
                     return;
@@ -29,14 +29,14 @@ function PoslednjiRecepti() {
     if (loading) {
         return (
             <div className="w-full flex justify-center items-center py-10">
-                <div className="text-gray-600">Učitavam recepte...</div>
+                <div className="text-white">Učitavam recepte...</div>
             </div>
         );
     }
 
     return (
         <div className="w-full max-w-5xl mx-auto p-4">
-            <h2 className="text-2xl font-bold text-center text-gray-800 my-6">
+            <h2 className="text-2xl font-bold text-center text-white bg-blur-lg p-5 my-6">
                 Najnoviji recepti
             </h2>
 

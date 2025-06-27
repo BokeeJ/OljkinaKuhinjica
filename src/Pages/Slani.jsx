@@ -6,7 +6,7 @@ function Slani() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get('http://localhost:5050/api/recipes');
+            const res = await axios.get('https://kuhinjica-backend-1.onrender.com/api/recipes');
             const slani = res.data.filter((r) => r.category === 'slano');
             setRecipes(slani);
         };

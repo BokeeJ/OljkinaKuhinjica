@@ -13,7 +13,7 @@ function MyFavorites() {
 
             const results = await Promise.all(
                 favoriteIds.map((id) =>
-                    axios.get(`http://localhost:5050/api/recipes/${id}`, {
+                    axios.get(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`, {
                         validateStatus: (status) => status < 500,
                     }).then((res) => ({ id, status: res.status, data: res.data }))
                 ))
