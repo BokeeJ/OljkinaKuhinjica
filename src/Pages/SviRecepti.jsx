@@ -27,7 +27,7 @@ function SviRecepti() {
 
     const handleLike = async (id) => {
         try {
-            const res = await axios.post(`http://localhost:5050/api/recipes/${id}/like`);
+            const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/like`);
             setRecipes((prev) =>
                 prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r))
             );
@@ -37,7 +37,7 @@ function SviRecepti() {
     };
     const handleDislike = async (id) => {
         try {
-            const res = await axios.post(`http://localhost:5050/api/recipes/${id}/dislike`);
+            const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/dislike`);
             setRecipes((prev) =>
                 prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r))
             );
