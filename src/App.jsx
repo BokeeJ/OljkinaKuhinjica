@@ -62,7 +62,7 @@ function App() {
           }}
 
           isMobile={false}
-          className="flex justify-center items-center flex-col z-50 bg-orange-100 ease-in-out duration-300 transition-all transition-transform"
+          className="flex justify-center items-center flex-col z-50 bg-orange-300 ease-in-out duration-300 transition-all transition-transform top-10 left-0 absolute w-full"
         />
       </div>
 

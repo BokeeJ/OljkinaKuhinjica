@@ -130,10 +130,11 @@ function NavBar() {
                         />
 
                         <SearchResults
+
                             onClearInput={() => setSearchQuery('')}
                             onResultClick={toggleSearch}
                             isMobile
-                            className="flex flex-col gap-2 mt-4 w-full"
+                            className="w-full h-full shadow-2xl shadow-amber-100"
                         />
                     </div>
                 </div>
