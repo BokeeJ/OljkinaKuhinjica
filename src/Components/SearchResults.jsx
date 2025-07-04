@@ -9,11 +9,12 @@ function SearchResults({
     isMobile,
     className = '',
 }) {
-    const { searchResults } = useSearch();
+    const { searchResults, searchQuery } = useSearch();
+
     const navigate = useNavigate();
 
     // Ako nema rezultata, ništa se ne prikazuje
-    if (!searchResults || searchResults.length === 0) {
+    if (searchQuery && searchResults.length === 0) {
         return (
             <p className="text-center text-gray-500 mt-4">
                 Nema rezultata

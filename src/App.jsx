@@ -12,9 +12,7 @@ function App() {
   const location = useLocation();
   const { searchQuery, setSearchResults } = useSearch();
 
-
   useEffect(() => {
-    // Provera tokena pri mountovanju
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
   }, []);
@@ -22,21 +20,17 @@ function App() {
   useEffect(() => {
     const fetchResults = async () => {
       if (!searchQuery) {
-
         setSearchResults([]);
         return;
       }
 
       try {
-
         const res = await fetch("http://localhost:5050/api/recipes");
         const data = await res.json();
-
 
         const results = data.filter((r) =>
           r.title.toLowerCase().includes(searchQuery.toLowerCase())
         );
-
 
         setSearchResults(results);
       } catch (error) {
@@ -46,29 +40,25 @@ function App() {
     fetchResults();
   }, [searchQuery, setSearchResults]);
 
-
-
   return (
-    <div className="relative">
+    <div className="min-h-screen bg-white text-black relative overflow-hidden">
       <Header />
       <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
       <YouTubeMusic />
-      <div
-      >
+
+      {/* Search results prikaz */}
+      <div>
         <SearchResults
-          onClearInput={() => {
-
-            setSearchResults([]);
-          }}
-
+          onClearInput={() => setSearchResults([])}
           isMobile={false}
           className="flex justify-center items-center flex-col z-50 bg-orange-300 ease-in-out duration-300 transition-all transition-transform top-10 left-0 absolute w-full"
         />
       </div>
 
+      {/* Sadrzaj rute */}
       <AnimatePresence mode="wait">
         <motion.div
-          className='mt-6'
+
           key={location.pathname}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
