@@ -12,7 +12,6 @@ import Saradnja from './Pages/Saradnja.jsx';
 import Slani from './Pages/Slani.jsx';
 import Slatki from './Pages/Slatki.jsx';
 import SviRecepti from './Pages/SviRecepti.jsx';
-import DodajRecept from './Pages/DodajRecept.jsx';
 import AdminPanel from './Components/AdminPanel.jsx';
 import AdminLogin from './Components/AdminLogin.jsx';
 import ReceptDetalji from './Pages/ReceptDetalj.jsx';
@@ -20,6 +19,7 @@ import PopularniRecepti from './Pages/PopularniRecepti.jsx';
 import MyFavorites from './Pages/MyFavorites.jsx';
 import { SearchProvider } from './Context/SearchContext';
 import Pocetna from './Pages/Pocetna.jsx';
+import IzmeniRecept from './Pages/IzmeniRecept.jsx';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -49,10 +49,7 @@ const router = createBrowserRouter([
         path: 'sviRecepti',
         element: <SviRecepti />
       },
-      {
-        path: 'dodajRecept',
-        element: <DodajRecept />
-      },
+
       {
         path: 'admin',
         element: <AdminPanel />
@@ -76,6 +73,9 @@ const router = createBrowserRouter([
       {
         path: '/',
         element: <Pocetna />
+      }, {
+        path: 'izmeni-recept/:id',
+        element: <IzmeniRecept />
       }
 
     ]

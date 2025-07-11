@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 axios.defaults.withCredentials = true;
 
@@ -9,7 +10,7 @@ function AdminLogin() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { setIsLoggedIn } = useOutletContext();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -19,13 +20,12 @@ function AdminLogin() {
             const res = await axios.post('https://kuhinjica-backend-1.onrender.com/api/auth/login', {
                 username,
                 password
-            }, {
-                withCredentials: true
             });
 
             localStorage.setItem('token', res.data.token);
             alert('Uspešan login ✅');
-            setIsLoggedIn(true);
+
+            // ✅ obaveštava AdminPanel da se ulogovao
             navigate('/admin');
 
         } catch (err) {
@@ -65,5 +65,9 @@ function AdminLogin() {
         </form>
     );
 }
+
+AdminLogin.propTypes = {
+    onLogin: PropTypes.func.isRequired,
+};
 
 export default AdminLogin;

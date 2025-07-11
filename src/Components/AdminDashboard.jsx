@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddRecipe from './AddRecipe';
+import { Link } from 'react-router-dom';
 
 function AdminDashboard() {
     const [recipes, setRecipes] = useState([]);
@@ -46,6 +47,13 @@ function AdminDashboard() {
                     >
                         Obriši
                     </button>
+                    <Link
+                        to={`/izmeni-recept/${recipe._id}`}
+                        className="mt-2 bg-blue-600 text-white px-3 py-1 rounded ml-2 inline-block"
+                    >
+                        Izmeni
+                    </Link>
+
                 </li>
             ))}
 

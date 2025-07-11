@@ -54,7 +54,7 @@ function PoslednjiRecepti({ className = '' }) {
                         "
                     >
                         <img
-                            src={recipe.imageUrl}
+                            src={recipe.coverImage?.url}
                             alt={recipe.title}
                             className="w-full h-24 object-cover"
                         />

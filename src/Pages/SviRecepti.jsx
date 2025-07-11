@@ -1,103 +1,140 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
-import Header from "../Components/Header"; // VAŽNO! Da prosleđuje search value i callback
 
 function SviRecepti() {
-    const userId = "user123"; // <-- OVDE UBACI PRAVI ID KORISNIKA
+    const userId = "user123";
     const [recipes, setRecipes] = useState([]);
-    const [search, setSearch] = useState(""); // OVDE DRŽI SEARCH
+    const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
+    const [subCategory, setSubCategory] = useState("");
     const [favorites, setFavorites] = useState(() => {
-        const saved = JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
-        return saved;
+        return JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
     });
     const [currentPage, setCurrentPage] = useState(1);
     const perPage = 12;
 
+    const [openDropdown, setOpenDropdown] = useState(false);
+    const [openSubMenu, setOpenSubMenu] = useState("");
+
     useEffect(() => {
-        const fetchData = async () => {
-            const res = await axios.get("https://kuhinjica-backend-1.onrender.com/api/recipes");
-            setRecipes(res.data);
-        };
-        fetchData();
+        axios.get("https://kuhinjica-backend-1.onrender.com/api/recipes")
+            .then((res) => setRecipes(res.data));
     }, []);
 
     const handleLike = async (id) => {
-        try {
-            const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/like`);
-            setRecipes((prev) =>
-                prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r))
-            );
-        } catch (error) {
-            console.error(error);
-        }
+        const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/like`);
+        setRecipes((prev) => prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r)));
     };
+
     const handleDislike = async (id) => {
-        try {
-            const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/dislike`);
-            setRecipes((prev) =>
-                prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r))
-            );
-        } catch (error) {
-            console.error(error);
-        }
+        const res = await axios.post(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}/dislike`);
+        setRecipes((prev) => prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r)));
     };
+
     const handleFavorite = (id) => {
-        let updatedFavorites = [...favorites];
-        if (updatedFavorites.includes(id)) {
-            updatedFavorites = updatedFavorites.filter((fav) => fav !== id);
-        } else {
-            updatedFavorites.push(id);
-        }
-        setFavorites(updatedFavorites);
-        localStorage.setItem(`favorites_${userId}`, JSON.stringify(updatedFavorites));
+        let updated = [...favorites];
+        updated = updated.includes(id) ? updated.filter((f) => f !== id) : [...updated, id];
+        setFavorites(updated);
+        localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
-    const filteredRecipes = recipes.filter(
-        (r) =>
-            r.title.toLowerCase().includes(search.toLowerCase()) &&
-            (categoryFilter ? r.category === categoryFilter : true)
-    );
-    const totalPages = Math.ceil(filteredRecipes.length / perPage);
-    const currentRecipes = filteredRecipes.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+    const filterRecipes = recipes.filter((r) => {
+        const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
+        const matchCategory = categoryFilter ? r.category === categoryFilter : true;
+        const matchSub = subCategory ? r.subcategory === subCategory : true;
+        return matchSearch && matchCategory && matchSub;
+    });
+
+    const totalPages = Math.ceil(filterRecipes.length / perPage);
+    const currentRecipes = filterRecipes.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+    const handleSubCategorySelect = (cat, sub) => {
+        setCategoryFilter(cat);
+        setSubCategory(sub);
+        setOpenDropdown(false);
+        setOpenSubMenu("");
+    };
 
     return (
-        <div className="p-4 bg-gradient-to-b mt-5 min-h-screen">
-            {/* HEADER */}
-            {/* <Header
-                value={search}
-                onSearchChange={(val) => setSearch(val)}
-            /> */}
+        <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-gray-100">
+            {/* FILTERI */}
 
-            {/* FILTERS */}
-            <div className="flex flex-col sm:flex-row justify-center items-center mt-4 gap-3 flex-wrap">
-                <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            <div className="relative flex flex-wrap justify-center gap-3 mb-6">
+                <button
+                    onClick={() => setOpenDropdown((prev) => !prev)}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full px-4 py-2 text-sm h-10"
                 >
-                    <option value="">Sve kategorije</option>
-                    <option value="slano">Slano</option>
-                    <option value="slatko">Slatko</option>
-                </select>
+                    Sve kategorije
+                </button>
+
+                <AnimatePresence>
+                    {openDropdown && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            className="absolute top-14 left-0 bg-white border shadow-md rounded-lg z-50 p-4"
+                        >
+                            <div className="flex gap-6">
+                                {/* Leva strana - Glavne kategorije */}
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => setOpenSubMenu("slatko")} className="hover:underline">
+                                        Slatko
+                                    </button>
+                                    <button onClick={() => setOpenSubMenu("slano")} className="hover:underline">
+                                        Slano
+                                    </button>
+                                </div>
+
+                                {/* Desna strana - Podkategorije */}
+                                {openSubMenu === "slatko" && (
+                                    <div className="flex flex-col gap-2 border-l pl-4">
+                                        <button onClick={() => handleSubCategorySelect("slatko", "torte")}>
+                                            Torte
+                                        </button>
+                                        <button onClick={() => handleSubCategorySelect("slatko", "kolaci")}>
+                                            Kolači
+                                        </button>
+                                    </div>
+                                )}
+                                {openSubMenu === "slano" && (
+                                    <div className="flex flex-col gap-2 border-l pl-4">
+                                        <button onClick={() => handleSubCategorySelect("slano", "dorucak")}>
+                                            Doručak
+                                        </button>
+                                        <button onClick={() => handleSubCategorySelect("slano", "rucak")}>
+                                            Ručak
+                                        </button>
+                                        <button onClick={() => handleSubCategorySelect("slano", "vecera")}>
+                                            Večera
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <Link
                     to="/popularni"
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full px-3 py-2 text-sm"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full px-4 py-2 text-sm"
                 >
                     🔥 Najpopularniji
                 </Link>
                 <Link
                     to="/favorites"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-3 py-2 text-sm"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full px-4 py-2 text-sm"
                 >
                     ⭐ Moji favoriti
                 </Link>
             </div>
 
             {/* RECEPTI */}
-            <div className="mt-8 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full max-w-7xl">
                 {currentRecipes.map((r) => (
                     <motion.div
                         key={r._id}
@@ -108,18 +145,18 @@ function SviRecepti() {
                         transition={{ duration: 0.3 }}
                     >
                         <div>
-                            {r.imageUrl && (
+                            {r.coverImage?.url && (
                                 <img
-                                    src={r.imageUrl}
+                                    src={r.coverImage.url}
                                     alt={r.title}
-                                    className="w-full h-28 sm:h-32 object-cover"
+                                    className="w-full h-32 object-cover"
                                 />
                             )}
                             <div className="p-2">
                                 <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
                                 <p className="text-gray-600 mt-1 text-xs line-clamp-2">{r.description}</p>
                                 <span className="bg-emerald-100 text-emerald-600 rounded-full px-2 py-1 text-[10px] mt-1 inline-block">
-                                    {r.category}
+                                    {r.category} {r.subcategory && `- ${r.subcategory}`}
                                 </span>
                             </div>
                         </div>
@@ -127,29 +164,23 @@ function SviRecepti() {
                             <p className="text-gray-400 text-[10px]">{new Date(r.createdAt).toLocaleString("sr-RS")}</p>
                             <div className="flex flex-wrap items-center gap-1">
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleLike(r._id);
-                                    }}
+                                    onClick={() => handleLike(r._id)}
                                     className="bg-emerald-500 text-white rounded-full px-2 py-1 text-[10px] hover:bg-emerald-600"
                                 >
                                     👍 ({r.likes || 0})
                                 </button>
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleDislike(r._id);
-                                    }}
+                                    onClick={() => handleDislike(r._id)}
                                     className="bg-gray-300 text-gray-600 rounded-full px-2 py-1 text-[10px] hover:bg-gray-400"
                                 >
                                     👎
                                 </button>
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleFavorite(r._id);
-                                    }}
-                                    className={`rounded-full p-1 flex items-center justify-center ${favorites.includes(r._id) ? "bg-emerald-600 text-white" : "bg-gray-300 text-gray-600 hover:bg-emerald-100"}`}
+                                    onClick={() => handleFavorite(r._id)}
+                                    className={`rounded-full p-1 flex items-center justify-center ${favorites.includes(r._id)
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-gray-300 text-gray-600 hover:bg-emerald-100"
+                                        }`}
                                 >
                                     <Star className="h-3 w-3" />
                                 </button>
@@ -165,14 +196,14 @@ function SviRecepti() {
                 ))}
             </div>
 
-            {/* Poruka kad nema rezultata */}
+            {/* Nema rezultata */}
             {currentRecipes.length === 0 && (
                 <div className="text-center mt-6 text-gray-600">
                     Nema rezultata za: <strong>{search}</strong>
                 </div>
             )}
 
-            {/* Pagination */}
+            {/* Paginacija */}
             <div className="flex justify-center mt-8 space-x-1">
                 {[...Array(totalPages).keys()].map((num) => (
                     <button

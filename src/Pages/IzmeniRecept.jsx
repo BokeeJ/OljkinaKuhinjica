@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useParams, useNavigate } from 'react-router-dom';
 
-function AddRecipe() {
+function IzmeniRecept() {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         title: '',
         description: '',
@@ -10,27 +14,33 @@ function AddRecipe() {
         preparationTime: '',
         ingredients: [''],
         instructions: '',
-        coverImage: null,
-        gallery: []
     });
+
+    useEffect(() => {
+        axios.get(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`)
+            .then(res => {
+                const data = res.data;
+                setForm({
+                    title: data.title || '',
+                    description: data.description || '',
+                    category: data.category || 'slano',
+                    subcategory: data.subcategory || '',
+                    preparationTime: data.preparationTime || '',
+                    ingredients: data.ingredients || [''],
+                    instructions: data.instructions || '',
+                });
+            });
+    }, [id]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleCoverImageChange = (e) => {
-        setForm(prev => ({ ...prev, coverImage: e.target.files[0] }));
-    };
-
-    const handleGalleryChange = (e) => {
-        setForm(prev => ({ ...prev, gallery: Array.from(e.target.files) }));
-    };
-
     const handleIngredientChange = (index, value) => {
-        const newIngredients = [...form.ingredients];
-        newIngredients[index] = value;
-        setForm(prev => ({ ...prev, ingredients: newIngredients }));
+        const updated = [...form.ingredients];
+        updated[index] = value;
+        setForm(prev => ({ ...prev, ingredients: updated }));
     };
 
     const addIngredient = () => {
@@ -39,34 +49,17 @@ function AddRecipe() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!form.coverImage) {
-            alert('Molimo dodajte naslovnu sliku!');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('title', form.title);
-        formData.append('description', form.description);
-        formData.append('category', form.category);
-        formData.append('subcategory', form.subcategory);
-        formData.append('preparationTime', form.preparationTime);
-        formData.append('instructions', form.instructions);
-        formData.append('coverImage', form.coverImage);
-        form.ingredients.forEach((ing) => formData.append('ingredients', ing));
-        form.gallery.forEach((file) => formData.append('gallery', file));
-
         try {
-            const res = await axios.post('http://localhost:5050/api/recipes', formData, {
+            const res = await axios.put(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`, form, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            alert('Recept dodat!');
-            console.log(res.data);
+            alert('Recept izmenjen!');
+            navigate('/admin');
         } catch (err) {
             console.error(err);
-            alert('Greška pri dodavanju recepta');
+            alert('Greška pri izmeni recepta');
         }
     };
 
@@ -79,8 +72,6 @@ function AddRecipe() {
                 <option value="slatko">Slatko</option>
             </select>
             <input name="subcategory" type="text" placeholder="Podkategorija (npr. Torte, Doručak...)" value={form.subcategory} onChange={handleChange} />
-            <input type="file" accept="image/*" onChange={handleCoverImageChange} required />
-            <input type="file" accept="image/*,video/*" multiple onChange={handleGalleryChange} />
             <input name="preparationTime" type="text" placeholder="Vreme pripreme (npr. 45 minuta)" value={form.preparationTime} onChange={handleChange} />
             <textarea name="instructions" placeholder="Uputstvo za pripremu" value={form.instructions} onChange={handleChange} required />
 
@@ -99,9 +90,9 @@ function AddRecipe() {
                 <button type="button" onClick={addIngredient} className="text-blue-500">+ Dodaj sastojak</button>
             </div>
 
-            <button type="submit" className="bg-green-500 text-white py-2">Dodaj recept</button>
+            <button type="submit" className="bg-blue-500 text-white py-2">Izmeni recept</button>
         </form>
     );
 }
 
-export default AddRecipe;
+export default IzmeniRecept;
