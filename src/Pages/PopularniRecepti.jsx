@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
+import { API_BASE_URL } from '../config.js';
 
 function PopularniRecepti() {
     const [recipes, setRecipes] = useState([]);
@@ -10,8 +11,13 @@ function PopularniRecepti() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get("https://kuhinjica-backend-1.onrender.com/api/recipes/popular");
-            setRecipes(res.data);
+            try {
+                const res = await axios.get(`${API_BASE_URL}/api/recipes/popular`);
+                setRecipes(res.data);
+            } catch (err) {
+                console.error("❌ Greška pri učitavanju popularnih recepata:", err);
+                alert("Greška pri učitavanju popularnih recepata.");
+            }
         };
         fetchData();
     }, []);
@@ -32,7 +38,7 @@ function PopularniRecepti() {
                 className="w-full max-w-[300px] mx-auto mt-4 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 block"
             />
 
-            <div className="mt-8 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                 {filteredRecipes.map((r) => (
                     <motion.div
                         key={r._id}
@@ -43,9 +49,9 @@ function PopularniRecepti() {
                         transition={{ duration: 0.3 }}
                     >
                         <div>
-                            {r.imageUrl && (
+                            {r.coverImage?.url && (
                                 <img
-                                    src={r.imageUrl}
+                                    src={r.coverImage.url}
                                     alt={r.title}
                                     className="w-full h-32 sm:h-40 object-cover"
                                 />

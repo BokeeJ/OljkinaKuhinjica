@@ -2,7 +2,7 @@ import React from "react";
 
 function OMeni() {
     return (
-        <div className="bg-orange-100 p-6 flex flex-col lg:flex-row items-center justify-center rounded-xl max-w-5xl mx-auto my-10 shadow-lg">
+        <div className=" p-6 flex flex-col lg:flex-row items-center justify-center rounded-xl max-w-5xl mx-auto my-10 text-white">
             {/* Leva strana - slika */}
             <div className="lg:w-1/2 w-full flex justify-center p-4">
                 <img

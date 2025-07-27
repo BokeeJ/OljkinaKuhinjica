@@ -20,6 +20,7 @@ import MyFavorites from './Pages/MyFavorites.jsx';
 import { SearchProvider } from './Context/SearchContext';
 import Pocetna from './Pages/Pocetna.jsx';
 import IzmeniRecept from './Pages/IzmeniRecept.jsx';
+import PrivateRoute from './Components/PrivateRoute.jsx';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -52,8 +53,15 @@ const router = createBrowserRouter([
 
       {
         path: 'admin',
-        element: <AdminPanel />
-      },
+        element: <PrivateRoute />,
+        children: [
+          {
+            path: '',
+            element: <AdminPanel />
+          }
+        ]
+      }
+      ,
       {
         path: 'login',
         element: <AdminLogin />

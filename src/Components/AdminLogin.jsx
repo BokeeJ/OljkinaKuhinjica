@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types';
+import { API_BASE_URL } from '../config';
 
 axios.defaults.withCredentials = true;
 
@@ -17,17 +17,16 @@ function AdminLogin() {
         console.log('📤 Šaljem:', username, password);
 
         try {
-            const res = await axios.post('https://kuhinjica-backend-1.onrender.com/api/auth/login', {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
                 username,
                 password
             });
+            localStorage.setItem('admin_token', res.data.token);
 
-            localStorage.setItem('token', res.data.token);
+
             alert('Uspešan login ✅');
-
-            // ✅ obaveštava AdminPanel da se ulogovao
+            console.log("Navigiram na admin...");
             navigate('/admin');
-
         } catch (err) {
             console.error('❌ Login greška:', err.response?.data || err.message);
             alert('Login neuspešan. Proveri korisničko ime ili lozinku.');
@@ -65,9 +64,5 @@ function AdminLogin() {
         </form>
     );
 }
-
-AdminLogin.propTypes = {
-    onLogin: PropTypes.func.isRequired,
-};
 
 export default AdminLogin;

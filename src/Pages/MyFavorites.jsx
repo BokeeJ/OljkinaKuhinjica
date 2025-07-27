@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
+import { API_BASE_URL } from "../config";
 function MyFavorites() {
     const userId = "user123";
     const [favoriteRecipes, setFavoriteRecipes] = useState([]);
@@ -13,7 +13,7 @@ function MyFavorites() {
 
             const results = await Promise.all(
                 favoriteIds.map((id) =>
-                    axios.get(`https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`, {
+                    axios.get(`${API_BASE_URL}/api/recipes/${id}`, {
                         validateStatus: (status) => status < 500,
                     }).then((res) => ({ id, status: res.status, data: res.data }))
                 ))
@@ -57,9 +57,9 @@ function MyFavorites() {
                         className="bg-white rounded-xl shadow hover:shadow-lg flex flex-col justify-between overflow-hidden hover:-translate-y-1 transition transform"
                     >
                         <div>
-                            {recipe.imageUrl && (
+                            {recipe.coverImage.url && (
                                 <img
-                                    src={recipe.imageUrl}
+                                    src={recipe.coverImage.url}
                                     alt={recipe.title}
                                     className="w-full h-28 sm:h-32 object-cover"
                                 />

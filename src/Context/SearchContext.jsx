@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-
+import { API_BASE_URL } from "../config";
 const SearchContext = createContext();
 
 export const SearchProvider = ({ children }) => {
@@ -11,7 +11,7 @@ export const SearchProvider = ({ children }) => {
     useEffect(() => {
         const fetchRecipes = async () => {
             try {
-                const res = await fetch("https://kuhinjica-backend-1.onrender.com/api/recipes"); // prilagodi ako drugačije zoveš rutu
+                const res = await fetch(`${API_BASE_URL}/api/recipes`);
                 const data = await res.json();
                 setAllRecipes(data);
             } catch (error) {

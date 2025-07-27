@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
-
+import { API_BASE_URL } from '../config';
 function ReceptDetalji() {
     const { id } = useParams();
     const [recipe, setRecipe] = useState(null);
@@ -14,7 +14,7 @@ function ReceptDetalji() {
     useEffect(() => {
         const fetchData = async () => {
             const res = await axios.get(
-                `https://kuhinjica-backend-1.onrender.com/api/recipes/${id}`
+                `${API_BASE_URL}/api/recipes/${id}`
             );
             console.log('📥 Učitani recept:', res.data);
             setRecipe(res.data);
@@ -45,15 +45,16 @@ function ReceptDetalji() {
 
                     <div className="mt-4 space-y-3 text-gray-700 text-base break-words">
                         <div>
-                            <h5 className="font-semibold">Opis recepta:</h5>
+                            <h5 className="font-semibold">Kategorija:</h5>
+                            <p className="italic text-sm text-gray-500">{recipe.category}</p>
+                        </div>
+                        <div>
+                            <h5 className="font-semibold">Sastojci:</h5>
                             <p className="text-gray-600 whitespace-pre-line">{recipe.description}</p>
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:gap-6">
-                            <div>
-                                <h5 className="font-semibold">Kategorija:</h5>
-                                <p className="italic text-sm text-gray-500">{recipe.category}</p>
-                            </div>
+
 
                             <div>
                                 <h5 className="font-semibold">Vreme spremanja:</h5>
@@ -61,14 +62,14 @@ function ReceptDetalji() {
                             </div>
                         </div>
 
-                        <div>
+                        {/* <div>
                             <h5 className="font-semibold">Sastojci:</h5>
                             <ul className="list-disc list-inside text-sm text-gray-700">
                                 {recipe.ingredients?.map((ing, idx) => (
                                     <li key={idx}>{ing}</li>
                                 ))}
                             </ul>
-                        </div>
+                        </div> */}
 
                         <div>
                             <h5 className="font-semibold">Uputstvo za pripremu:</h5>

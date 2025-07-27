@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-
+import { API_BASE_URL } from '../config';
 function Slani() {
     const [recipes, setRecipes] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await axios.get('https://kuhinjica-backend-1.onrender.com/api/recipes');
+            const res = await axios.get(`${API_BASE_URL}/api/recipes`);
             const slani = res.data.filter((r) => r.category === 'slano');
             setRecipes(slani);
         };
