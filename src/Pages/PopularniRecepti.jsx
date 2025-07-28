@@ -58,10 +58,8 @@ function PopularniRecepti() {
                             )}
                             <div className="p-2">
                                 <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
-                                <p className="text-gray-600 mt-1 text-xs line-clamp-2">{r.description}</p>
-                                <span className="bg-emerald-100 text-emerald-600 rounded-full px-2 py-1 text-[10px] mt-1 inline-block">
-                                    {r.category}
-                                </span>
+                                <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
+
                             </div>
                         </div>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">

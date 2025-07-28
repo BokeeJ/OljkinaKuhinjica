@@ -67,6 +67,7 @@ function IzmeniRecept() {
         gallery.forEach(g => data.append('gallery', g));
 
         try {
+            console.log("ID koji šaljem:", id); // ispravno
             await axios.put(`${API_BASE_URL}/api/recipes/${id}`, data, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
@@ -80,6 +81,7 @@ function IzmeniRecept() {
             alert('Greška pri izmeni recepta.');
         }
     };
+
 
     return (
         <form

@@ -27,68 +27,62 @@ function ReceptDetalji() {
         fetchData();
     }, [id]);
 
-    if (!recipe) return <div className="p-6 text-center">Učitavam...</div>;
+    if (!recipe)
+        return <div className='p-6 text-center'>Učitavam...</div>;
 
     return (
         <>
-            <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-b flex justify-center">
-                <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-3xl">
+            <div className='min-h-screen p-4 sm:p-6 bg-gradient-to-b flex justify-center'>
+                <div className='bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-3xl'>
                     {recipe.coverImage && (
                         <img
                             src={recipe.coverImage.url}
                             alt={recipe.title}
-                            className="w-full h-48 sm:h-64 object-cover rounded-xl"
+                            className='w-full h-48 sm:h-64 object-cover rounded-xl'
                         />
                     )}
 
-                    <h1 className="text-2xl sm:text-3xl font-bold mt-4 text-gray-800">{recipe.title}</h1>
+                    <h1 className='text-2xl sm:text-3xl font-bold mt-4 text-gray-800'>
+                        {recipe.title}
+                    </h1>
 
-                    <div className="mt-4 space-y-3 text-gray-700 text-base break-words">
+                    <div className='mt-4 space-y-3 text-gray-700 text-base break-words'>
                         <div>
-                            <h5 className="font-semibold">Kategorija:</h5>
-                            <p className="italic text-sm text-gray-500">{recipe.category}</p>
-                        </div>
-                        <div>
-                            <h5 className="font-semibold">Sastojci:</h5>
-                            <p className="text-gray-600 whitespace-pre-line">{recipe.description}</p>
+                            <h5 className='font-semibold'>Sastojci:</h5>
+                            <p className='text-gray-600 whitespace-pre-line'>
+                                {recipe.description}
+                            </p>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:gap-6">
-
-
-                            <div>
-                                <h5 className="font-semibold">Vreme spremanja:</h5>
-                                <p className="italic text-sm text-gray-500">{recipe.preparationTime} minuta</p>
-                            </div>
-                        </div>
-
-                        {/* <div>
-                            <h5 className="font-semibold">Sastojci:</h5>
-                            <ul className="list-disc list-inside text-sm text-gray-700">
-                                {recipe.ingredients?.map((ing, idx) => (
-                                    <li key={idx}>{ing}</li>
-                                ))}
-                            </ul>
-                        </div> */}
+                        <div className='flex flex-col sm:flex-row sm:gap-6'></div>
 
                         <div>
-                            <h5 className="font-semibold">Uputstvo za pripremu:</h5>
-                            <p className="whitespace-pre-line text-sm">{recipe.instructions}</p>
+                            <h5 className='font-semibold'>Uputstvo za pripremu:</h5>
+                            <p className='whitespace-pre-line text-sm'>
+                                {recipe.instructions}
+                            </p>
+                        </div>
+                        <div>
+                            <h5 className='font-semibold'>Vreme spremanja:</h5>
+                            <p className='italic text-sm text-gray-500'>
+                                {recipe.preparationTime} min
+                            </p>
                         </div>
 
-                        <p className="text-gray-400 text-xs mt-2">
-                            Dodato: {new Date(recipe.createdAt).toLocaleString('sr-RS')}
+                        <p className='text-gray-400 text-xs mt-2'>
+                            Dodato:{' '}
+                            {new Date(recipe.createdAt).toLocaleString('sr-RS')}
                         </p>
                     </div>
 
                     {gallery.length > 0 && (
-                        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className='mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3'>
                             {gallery.map((item, idx) => (
                                 <img
                                     key={idx}
                                     src={item.src}
                                     alt={`Slika ${idx + 1}`}
-                                    className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition"
+                                    className='w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition'
                                     onClick={() => {
                                         setCurrentIndex(idx);
                                         setIsOpen(true);
@@ -99,9 +93,8 @@ function ReceptDetalji() {
                     )}
 
                     <Link
-                        to="/SviRecepti"
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full mt-6 inline-block px-4 py-2 text-sm"
-                    >
+                        to='/SviRecepti'
+                        className='bg-emerald-500 hover:bg-emerald-600 text-white rounded-full mt-6 inline-block px-4 py-2 text-sm'>
                         ← Nazad na listu
                     </Link>
                 </div>

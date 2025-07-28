@@ -95,7 +95,7 @@ function NavBar() {
 
             {/* Mobile menu */}
             <div
-                className={`absolute top-[140px] backdrop-blur-2xl bg-gray-900/95 w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
+                className={`absolute top-[140px] backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
                 <ul className="gap-5 m-2 flex flex-col text-lg">
                     <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
                     <NavLink to="/omeni" className="hover:text-orange-400 transition">O meni</NavLink>
