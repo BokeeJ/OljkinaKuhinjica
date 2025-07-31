@@ -22,7 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.522.0",
     "mongoose": "^8.15.2",
-    "motion": "^12.23.7",
+    "motion": "^12.23.12",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
     "react": "^18.2.0",

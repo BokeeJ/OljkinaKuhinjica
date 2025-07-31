@@ -10,6 +10,7 @@ function AddRecipe() {
         preparationTime: '',
         ingredients: '',
         instructions: '',
+        note: '',
         coverImage: null,
         gallery: []
     });
@@ -41,6 +42,7 @@ function AddRecipe() {
         formData.append('subcategory', form.subcategory);
         formData.append('preparationTime', form.preparationTime);
         formData.append('instructions', form.instructions);
+        formData.append('note', form.note); // ✅ napomena
         formData.append('coverImage', form.coverImage);
 
         const ingredientsArray = form.ingredients
@@ -52,17 +54,25 @@ function AddRecipe() {
         form.gallery.forEach((file) => formData.append('gallery', file));
 
         try {
+            const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
+
+            if (!token) {
+                alert('Token nije pronađen. Prijavite se ponovo.');
+                return;
+            }
+
             const res = await axios.post(`${API_BASE_URL}/api/recipes`, formData, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${token}`,
                 }
             });
             alert('Recept dodat!');
             console.log(res.data);
         } catch (err) {
-            console.error(err);
-            alert('Greška pri dodavanju recepta');
+            console.error('❌ Greska:', err?.response?.data || err.message || err);
+            alert(err?.response?.data?.error || err.message || 'Greška pri dodavanju recepta');
         }
+
     };
 
     return (
@@ -137,6 +147,16 @@ function AddRecipe() {
                 onChange={handleChange}
                 rows={6}
                 required
+            />
+
+            {/* ✅ Nova napomena */}
+            <label className='text-orange-300 font-bold'>Napomena (opciono):</label>
+            <textarea
+                name="note"
+                placeholder="Npr. koristila sam čokoladu sa 70% kakaa"
+                value={form.note}
+                onChange={handleChange}
+                rows={3}
             />
 
             <button type="submit" className="bg-green-500 text-white py-2">

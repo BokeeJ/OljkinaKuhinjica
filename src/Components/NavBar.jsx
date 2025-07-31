@@ -29,10 +29,10 @@ function NavBar() {
     }, [location]);
 
     return (
-        <div className="w-full lg:h-[200px] flex flex-col justify-center items-center relative text-white   z-50">
+        <div className="w-full lg:h-[200px] flex flex-col justify-center items-center relative text-white z-50">
             {/* Favorites bar */}
             <div
-                className={`w-full h-[300px] top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`}>
+                className={`w-full h-[300px] lg:block hidden top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`}>
                 <Link onClick={() => setShowSearch(false)} to={'/favorites'}>
                     <div className='flex p-5 items-center gap-2'>
                         <CiHeart size={28} />
@@ -95,7 +95,7 @@ function NavBar() {
 
             {/* Mobile menu */}
             <div
-                className={`absolute top-[140px] backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
+                className={`absolute top-0 backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
                 <ul className="gap-5 m-2 flex flex-col text-lg">
                     <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
                     <NavLink to="/omeni" className="hover:text-orange-400 transition">O meni</NavLink>
@@ -108,7 +108,7 @@ function NavBar() {
             {showSearch && (
                 <div className="fixed inset-0 z-[999] lg:hidden flex flex-col">
                     {/* Gornjih 50% */}
-                    <div className="h-1/2 bg-gray-900/95 px-4 py-6 flex flex-col justify-start gap-4 mt-10">
+                    <div className="h-1/2 bg-gray-900/95 px-4 py-6 flex flex-col justify-start gap-4 ">
                         {/* Favorites i Zatvori */}
                         <div className="flex flex-col items-center">
                             <div className='flex justify-between w-full'>
@@ -127,14 +127,14 @@ function NavBar() {
 
                             <SearchInput
                                 color="orange"
-                                className="border border-orange-400 bg-gray-800 text-white placeholder:text-orange-300 p-2 rounded-2xl w-full focus:outline-none focus:ring focus:ring-orange-300 bottom-0 "
+                                className="border border-orange-400 bg-gray-800 text-white placeholder:text-white p-2 rounded-2xl w-full focus:outline-none focus:ring focus:ring-orange-300 bottom-0 mt-10"
                                 placeholder="Pretraži recept..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
 
-                        {/* Search input */}
+
 
                     </div>
 

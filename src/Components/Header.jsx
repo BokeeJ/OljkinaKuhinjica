@@ -7,7 +7,7 @@ function Header() {
     const { searchQuery, setSearchQuery } = useSearch();
 
     return (
-        <header className="fixed top-0 left-0 w-full z-100 bg-transparent pointer-events-auto">
+        <header className="absolute top-0 left-0 w-full z-100 bg-transparent pointer-events-auto lg:block  hidden">
             <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
                 <div className="lg:flex hidden">
                     <SearchInput

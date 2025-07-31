@@ -8,7 +8,7 @@ function Pocetna() {
         <div className="w-full h-full flex flex-col items-center justify-center">
 
             {/* Hero sekcija */}
-            <div className="relative w-full h-[90vh]">
+            <div className="relative w-full h-[50vh]">
                 <div
                     className="absolute inset-0 bg-cover bg-center"
                 // style={{ backgroundImage: `url(/kolac.webp)` }}
@@ -23,8 +23,8 @@ function Pocetna() {
             </div>
 
             {/* Sekcija sa receptima */}
-            <section className="w-full max-w-6xl px-4 py-10 mt-[-40px] z-30 relative bg-white/90 backdrop-blur-md rounded-xl shadow-xl text-black">
-                <h2 className="text-3xl font-bold text-center text-orange-500 mb-8">Poslednji recepti</h2>
+            <section className="w-full max-w-6xl px-4 py-10 mt-[-40px] z-30 relative  backdrop-blur-md rounded-xl shadow-xl text-black">
+                <h2 className="text-3xl font-bold text-center text-white mb-8">Poslednji recepti</h2>
                 <PoslednjiRecepti />
             </section>
 

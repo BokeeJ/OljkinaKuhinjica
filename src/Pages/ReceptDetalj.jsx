@@ -42,31 +42,42 @@ function ReceptDetalji() {
                         />
                     )}
 
-                    <h1 className='text-2xl sm:text-3xl font-bold mt-4 text-gray-800'>
+                    <h1 className='text-2xl sm:text-3xl font-bold mt-4 text-gray-800 '>
                         {recipe.title}
                     </h1>
 
                     <div className='mt-4 space-y-3 text-gray-700 text-base break-words'>
                         <div>
-                            <h5 className='font-semibold'>Sastojci:</h5>
+                            <h5 className='font-semibold text-orange-300'>Sastojci:</h5>
                             <p className='text-gray-600 whitespace-pre-line'>
-                                {recipe.description}
+                                {recipe.ingredients.map((sastojak, index) => (
+
+                                    <li key={index}>{sastojak}</li>
+
+                                ))}
                             </p>
                         </div>
 
                         <div className='flex flex-col sm:flex-row sm:gap-6'></div>
 
                         <div>
-                            <h5 className='font-semibold'>Uputstvo za pripremu:</h5>
+                            <h5 className='font-semibold text-orange-300'>Uputstvo za pripremu:</h5>
                             <p className='whitespace-pre-line text-sm'>
                                 {recipe.instructions}
                             </p>
                         </div>
                         <div>
-                            <h5 className='font-semibold'>Vreme spremanja:</h5>
+                            <h5 className='font-semibold text-orange-300'>Vreme spremanja:</h5>
                             <p className='italic text-sm text-gray-500'>
                                 {recipe.preparationTime} min
                             </p>
+                        </div>
+                        <div>
+                            <h5 className='font-semibold text-orange-300 '>Napomena:
+                                <p className='text-black'>
+                                    {recipe.note || 'Nema napomene.'}
+                                </p>
+                            </h5>
                         </div>
 
                         <p className='text-gray-400 text-xs mt-2'>
@@ -78,16 +89,27 @@ function ReceptDetalji() {
                     {gallery.length > 0 && (
                         <div className='mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3'>
                             {gallery.map((item, idx) => (
-                                <img
-                                    key={idx}
-                                    src={item.src}
-                                    alt={`Slika ${idx + 1}`}
-                                    className='w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition'
-                                    onClick={() => {
-                                        setCurrentIndex(idx);
-                                        setIsOpen(true);
-                                    }}
-                                />
+                                item.type === 'video' ? (
+                                    <video
+                                        key={idx}
+                                        controls
+                                        className='w-full h-32 object-cover rounded-md'
+                                    >
+                                        <source src={item.src} type="video/mp4" />
+                                        Vaš pretraživač ne podržava video tag.
+                                    </video>
+                                ) : (
+                                    <img
+                                        key={idx}
+                                        src={item.src}
+                                        alt={`Slika ${idx + 1}`}
+                                        className='w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition'
+                                        onClick={() => {
+                                            setCurrentIndex(idx);
+                                            setIsOpen(true);
+                                        }}
+                                    />
+                                )
                             ))}
                         </div>
                     )}

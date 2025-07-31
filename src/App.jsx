@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useSearch } from './Context/SearchContext';
 import SearchResults from './Components/SearchResults';
 import { AuroraBackground } from "./Components/ui/aurora-background";
-
+import { API_BASE_URL } from './config';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
@@ -25,7 +25,7 @@ function App() {
       }
 
       try {
-        const res = await fetch("http://localhost:5050/api/recipes");
+        const res = await fetch(`${API_BASE_URL}/api/recipes`);
         const data = await res.json();
 
         const results = data.filter((r) =>

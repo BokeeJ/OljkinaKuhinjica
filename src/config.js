@@ -1,1 +1,4 @@
-export const API_BASE_URL = 'https://kuhinjica-backend-production.up.railway.app';
+// config.js
+export const API_BASE_URL = import.meta.env.MODE === 'development'
+    ? 'https://kuhinjica-backend-production.up.railway.app'
+    : 'http://localhost:5050';

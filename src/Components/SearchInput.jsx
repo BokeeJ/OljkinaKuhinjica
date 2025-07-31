@@ -10,7 +10,7 @@ function SearchInput({ value, onChange, placeholder, className, color, onClick }
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder || 'Pretraži recept...'}
-                className="outline-none bg-transparent text-black w-full"
+                className="outline-none bg-transparent lg:text-gray-600 text-white w-full"
             />
         </div>
     );

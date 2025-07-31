@@ -14,6 +14,7 @@ function IzmeniRecept() {
         preparationTime: '',
         ingredients: '',
         instructions: '',
+        note: '',
     });
     const [coverImage, setCoverImage] = useState(null);
     const [gallery, setGallery] = useState([]);
@@ -35,6 +36,7 @@ function IzmeniRecept() {
                     preparationTime: data.preparationTime || '',
                     ingredients: (data.ingredients || []).join('\n'),
                     instructions: data.instructions || '',
+                    note: data.note || '',
                 });
                 setExistingCover(data.coverImage);
                 setExistingGallery(data.gallery || []);
@@ -55,6 +57,7 @@ function IzmeniRecept() {
         data.append('subcategory', form.subcategory);
         data.append('preparationTime', form.preparationTime);
         data.append('instructions', form.instructions);
+        data.append('note', form.note);
 
         const ingredientsArray = form.ingredients
             .split('\n')
@@ -134,6 +137,17 @@ function IzmeniRecept() {
                     onChange={handleChange}
                     className="border p-2 rounded w-full h-32"
                     placeholder="Sastojak 1\nSastojak 2\nSastojak 3"
+                />
+            </div>
+            <div>
+                <label className="block font-medium mb-1">Napomena (opciono):</label>
+                <textarea
+                    name="note"
+                    value={form.note}
+                    onChange={handleChange}
+                    className="border p-2 rounded w-full"
+                    placeholder="Npr. koristila sam čokoladu sa 70% kakaa"
+                    rows={3}
                 />
             </div>
 
