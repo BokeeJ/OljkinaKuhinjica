@@ -38,7 +38,7 @@ function PoslednjiRecepti({ className = '' }) {
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4">
-            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4 justify-center">
                 {recipes.map((recipe) => (
                     <div
                         key={recipe._id}
@@ -61,7 +61,7 @@ function PoslednjiRecepti({ className = '' }) {
                             </p>
                             <div className="mt-auto pt-2">
                                 <button
-                                    className="w-full flex items-center justify-center text-white text-xs font-semibold rounded-full bg-orange-500 hover:bg-orange-600 py-1 px-3 transform hover:scale-105 transition"
+                                    className="w-full flex items-center justify-center text-gray-800 text-xs font-semibold rounded-full bg-orange-200 hover:bg-orange-300 py-1 px-3 transform hover:scale-105 transition cursor-pointer"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         navigate(`/recept/${recipe._id}`);

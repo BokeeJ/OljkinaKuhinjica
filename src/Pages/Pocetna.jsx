@@ -1,5 +1,8 @@
 import React from 'react';
 import PoslednjiRecepti from './PoslednjiRecepti';
+import { TextGenerateEffectDemo } from "../Components/ui/TextGenerateEffectDemo";
+
+
 
 
 function Pocetna() {
@@ -17,7 +20,8 @@ function Pocetna() {
 
                 <div className="relative z-20 flex items-center justify-center h-full px-4 text-center">
                     <h1 className="text-white text-2xl lg:text-4xl font-bold max-w-2xl leading-relaxed">
-                        “Daj čoveku kolač, zasladićeš mu dan. Nauči ga da pravi kolače i zasladićeš mu ceo život.”
+
+                        <TextGenerateEffectDemo />
                     </h1>
                 </div>
             </div>

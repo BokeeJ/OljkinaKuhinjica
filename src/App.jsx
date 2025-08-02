@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Components/Header';
 import NavBar from './Components/NavBar';
+import Savet from './Pages/Savet';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearch } from './Context/SearchContext';
@@ -74,6 +75,7 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+      <Savet />
     </div>
   );
 }
