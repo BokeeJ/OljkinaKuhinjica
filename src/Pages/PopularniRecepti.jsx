@@ -35,7 +35,7 @@ function PopularniRecepti() {
                 placeholder="Pretraži recepte..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full max-w-[300px] mx-auto mt-4 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 block"
+                className="w-full max-w-[300px] mx-auto mt-4 p-3 rounded-xl border text-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 block"
             />
 
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">

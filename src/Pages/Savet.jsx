@@ -2,8 +2,8 @@ import React from 'react'
 
 function Savet() {
     return (
-        <div className='lg:flex flex-col flex-row'>
-            <div className=''>
+        <div className='lg:flex flex-col lg:flex-row'>
+            <div>
                 <img
                     src="/oljka12.webp"
                     alt="Timski rad"
@@ -18,14 +18,13 @@ function Savet() {
                     Svaki recept na ovom sajtu nastao je u pravoj kuhinji, za prave ljude – bez komplikacija i skupih sastojaka.
                     <br /><br />
                     Ako tražiš proverene domaće recepte, uz jednostavne korake i siguran rezultat, ovde si na pravom mestu.
-                    <strong className="text-orange-500"> Pravi ukusi. Prava hrana. Prava Oljka.</strong>
                 </p>
                 <h2 className="text-3xl font-bold text-orange-300 mb-4">  “Ne moraš da budeš profesionalni kuvar da bi oduševio svoju porodicu.”</h2>
                 <p className=' text-gray-100 text-lg leading-relaxed'>
 
-                    Oljkini recepti su tu da ti pokažu koliko lako možeš da spremiš nešto ukusno, domaće i provereno. Bez stresa, bez lutanja – samo ljubav, jednostavni koraci i miris koji okuplja porodicu za stolom.
+                    Moji recepti su tu da ti pokažu koliko lako možeš da spremiš nešto ukusno, domaće i provereno. Bez stresa, bez lutanja – samo ljubav, jednostavni koraci i miris koji okuplja porodicu za stolom.
 
-                    Ako želiš da ti svako "mmm!" iz kuhinje podigne raspoloženje – tu su Oljkini recepti da ti pomognu.
+                    Ako želiš da ti svako "mmm!" iz kuhinje podigne raspoloženje – tu su recepti da ti pomognu.
                 </p>
 
             </div>

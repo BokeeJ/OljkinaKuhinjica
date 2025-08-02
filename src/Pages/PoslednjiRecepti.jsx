@@ -4,7 +4,7 @@ import { FaArrowRight } from "react-icons/fa";
 import { IoTimeOutline } from "react-icons/io5";
 import { API_BASE_URL } from "../config";
 
-function PoslednjiRecepti({ className = '' }) {
+function PoslednjiRecepti() {
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();

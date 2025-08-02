@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
@@ -74,7 +74,7 @@ function SviRecepti() {
     };
 
     return (
-        <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-orange-200">
+        <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-gray-600">
             {/* FILTERI */}
             <div className="relative flex flex-wrap justify-center gap-3 mb-6">
 
@@ -138,7 +138,7 @@ function SviRecepti() {
                 {currentRecipes.map((r) => (
                     <motion.div
                         key={r._id}
-                        className="bg-white rounded-lg shadow hover:shadow-lg overflow-hidden transition-all duration-300"
+                        className="bg-gradient-to-b from-gray-400 to-white rounded-lg shadow hover:shadow-lg overflow-hidden transition-all duration-300"
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -155,9 +155,7 @@ function SviRecepti() {
                             <div className="p-2">
                                 <h2 className="text-xs font-bold text-gray-800 line-clamp-1">{r.title}</h2>
 
-                                {/* <span className="bg-emerald-100 text-emerald-600 rounded-full px-2 py-0.5 text-[10px] mt-1 inline-block">
-                                    {r.category} {r.subcategory && `- ${r.subcategory}`}
-                                </span> */}
+
                                 <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
                             </div>
                         </div>

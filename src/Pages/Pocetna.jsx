@@ -1,7 +1,7 @@
 import React from 'react';
 import PoslednjiRecepti from './PoslednjiRecepti';
 import { TextGenerateEffectDemo } from "../Components/ui/TextGenerateEffectDemo";
-
+import Savet from '../Pages/Savet';
 
 
 
@@ -31,7 +31,7 @@ function Pocetna() {
                 <h2 className="text-3xl font-bold text-center text-white mb-8">Poslednji recepti</h2>
                 <PoslednjiRecepti />
             </section>
-
+            <Savet />
         </div>
 
     );
