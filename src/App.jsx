@@ -13,11 +13,20 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
   const { searchQuery, setSearchResults } = useSearch();
-
+  const backTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
   }, []);
+  useEffect(() => {
+    backTop();
+  }, [location.pathname]);
+
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -25,6 +34,7 @@ function App() {
         setSearchResults([]);
         return;
       }
+
 
       try {
         const res = await fetch(`${API_BASE_URL}/api/recipes`);

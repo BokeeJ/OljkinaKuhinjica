@@ -1,8 +1,23 @@
 import React from 'react'
-
+import { motion } from 'framer-motion'
 function Savet() {
+    const fadeInAnimationVariants = {
+        initial: {
+            opacity: 0,
+            y: 100
+
+        },
+        animate: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: 0.1,
+                duration: 3
+            }
+        }
+    }
     return (
-        <div className='lg:flex flex-col lg:flex-row'>
+        <div className='lg:flex flex-col lg:flex-row lg:p-5'>
             <div>
                 <img
                     src="/oljka12.webp"
@@ -11,7 +26,13 @@ function Savet() {
                     className='h-[80%] w-full  p-2 rounded-4xl'
                 />
             </div>
-            <div className='lg:w-[50%] text-center p-5 m-2'>
+            <motion.div
+                variants={fadeInAnimationVariants}
+                initial='initial'
+                whileInView='animate'
+                viewport={{
+                    once: true,
+                }} className='lg:w-[50%] text-center p-5 m-2'>
                 <h2 className="text-3xl font-bold text-orange-300 mb-4">Zašto baš Oljkini recepti?</h2>
                 <p className="text-gray-100 text-lg leading-relaxed">
                     Oljka nije kuvar – ona je mama, supruga, prijatelj... koja sa mnogo ljubavi kuva za svoje najmilije.
@@ -27,7 +48,7 @@ function Savet() {
                     Ako želiš da ti svako "mmm!" iz kuhinje podigne raspoloženje – tu su recepti da ti pomognu.
                 </p>
 
-            </div>
+            </motion.div>
         </div>
     )
 }

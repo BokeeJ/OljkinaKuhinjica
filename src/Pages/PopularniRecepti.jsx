@@ -28,7 +28,9 @@ function PopularniRecepti() {
 
     return (
         <div className="p-4 bg-gradient-to-b mt-5 min-h-screen">
-            <h1 className="text-3xl font-bold text-center text-emerald-600">Najpopularniji recepti</h1>
+            <h1 className="text-3xl font-bold text-center text-emerald-600">
+                👑 Najpopularniji recepti
+            </h1>
 
             <input
                 type="text"
@@ -59,15 +61,15 @@ function PopularniRecepti() {
                             <div className="p-2">
                                 <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
                                 <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
-
                             </div>
                         </div>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">
                             <p className="text-gray-400 text-[10px]">{new Date(r.createdAt).toLocaleString("sr-RS")}</p>
                             <div className="flex flex-wrap items-center gap-2">
-                                <div className="flex items-center text-gray-500">
+                                <div className="flex items-center text-gray-500 gap-1">
                                     <Heart className={`h-3 w-3 ${r.likes > 0 ? "text-emerald-600" : ""}`} />
-                                    <span className="ml-1 text-[10px]">{r.likes || 0}</span>
+                                    <span className="text-[10px]">{r.likes || 0}</span>
+                                    {r.likes >= 10 && <span className="text-yellow-500 text-xs">🏆</span>}
                                 </div>
                                 <Link
                                     to={`/recept/${r._id}`}

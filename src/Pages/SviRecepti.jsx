@@ -73,16 +73,20 @@ function SviRecepti() {
         setOpenSubMenu("");
     };
 
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     return (
         <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-gray-600">
             {/* FILTERI */}
             <div className="relative flex flex-wrap justify-center gap-3 mb-6">
-
                 <button
                     onClick={resetFilters}
                     className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-full px-4 py-2 text-sm h-10"
                 >
-                    ✖
+                    ✖ Reset
                 </button>
                 <button
                     onClick={() => setOpenDropdown((prev) => !prev)}
@@ -90,7 +94,6 @@ function SviRecepti() {
                 >
                     🧭 Izaberi kategoriju
                 </button>
-
 
                 <AnimatePresence>
                     {openDropdown && (
@@ -154,8 +157,6 @@ function SviRecepti() {
                             )}
                             <div className="p-2">
                                 <h2 className="text-xs font-bold text-gray-800 line-clamp-1">{r.title}</h2>
-
-
                                 <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
                             </div>
                         </div>
@@ -198,19 +199,44 @@ function SviRecepti() {
             )}
 
             {/* PAGINACIJA */}
-            <div className="flex justify-center mt-8 space-x-1">
-                {[...Array(totalPages).keys()].map((num) => (
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-8 space-x-1 items-center">
                     <button
-                        key={num}
-                        onClick={() => setCurrentPage(num + 1)}
-                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === num + 1
-                            ? "bg-emerald-500 text-white"
-                            : "bg-gray-300 text-gray-600"}`}
+                        onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                            }`}
                     >
-                        {num + 1}
+                        ←
                     </button>
-                ))}
-            </div>
+
+                    {[...Array(totalPages).keys()].map((num) => (
+                        <button
+                            key={num}
+                            onClick={() => handlePageChange(num + 1)}
+                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === num + 1
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                                }`}
+                        >
+                            {num + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                            }`}
+                    >
+                        →
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

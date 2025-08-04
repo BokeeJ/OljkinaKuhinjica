@@ -26,6 +26,7 @@ function NavBar() {
 
     useEffect(() => {
         setShowSearch(false);
+        console.log(isOpen);
     }, [location]);
 
     return (
@@ -95,8 +96,8 @@ function NavBar() {
 
             {/* Mobile menu */}
             <div
-                className={`absolute top-0 backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-200 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
-                <SlClose size={30} className='right-10 top-10 absolute hover:text-orange-300 cursor-pointer' />
+                className={`absolute top-0 backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-500 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
+                <SlClose onClick={() => setIsOpen(false)} size={30} className='right-10 top-10 absolute hover:text-orange-300 cursor-pointer' />
                 <ul className="gap-5 m-2 flex flex-col text-lg">
                     <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
                     <NavLink to="/omeni" className="hover:text-orange-400 transition">O meni</NavLink>
@@ -123,7 +124,7 @@ function NavBar() {
 
                                 <div className="flex items-center gap-2 cursor-pointer text-white" onClick={toggleSearch}>
                                     <IoCloseSharp className="text-2xl" />
-                                    <h5>Zatvori</h5>
+                                    <h5 className='text-white'>Zatvori</h5>
                                 </div>
                             </div>
 
