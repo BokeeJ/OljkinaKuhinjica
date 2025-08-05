@@ -36,7 +36,7 @@ export const TextGenerateEffect = ({
   return (
     <div className={cn("font-bold", className)}>
       <div className="mt-4">
-        <div className="dark:text-white text-black text-2xl leading-snug tracking-wide">
+        <div className="text-white text-2xl leading-snug tracking-wide">
         <motion.div
   ref={scope}
   className="flex flex-wrap justify-center gap-1 text-center"
@@ -44,7 +44,7 @@ export const TextGenerateEffect = ({
   {wordsArray.map((word, idx) => (
     <motion.span
       key={word + idx}
-      className="dark:text-white text-black opacity-0 whitespace-pre-wrap"
+      className=" text-white opacity-0 whitespace-pre-wrap"
       style={{
         filter: filter ? "blur(10px)" : "none",
       }}

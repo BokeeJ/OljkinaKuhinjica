@@ -9,10 +9,12 @@ import { useSearch } from './Context/SearchContext';
 import SearchResults from './Components/SearchResults';
 import { AuroraBackground } from "./Components/ui/aurora-background";
 import { API_BASE_URL } from './config';
+import { IoArrowUpOutline } from "react-icons/io5";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
   const { searchQuery, setSearchResults } = useSearch();
+  const [showButton, setShowButton] = useState(false);
   const backTop = () => {
     window.scrollTo({
       top: 0,
@@ -26,7 +28,16 @@ function App() {
   useEffect(() => {
     backTop();
   }, [location.pathname]);
+  useEffect(() => {
+    const handleScroll = () => {
 
+      setShowButton(window.scrollY > 200);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -51,7 +62,9 @@ function App() {
     };
     fetchResults();
   }, [searchQuery, setSearchResults]);
-
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   return (
     <div className="relative">
       {/* Aurora pozadina */}
@@ -86,6 +99,15 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+      {/* Scroll to top button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-6 right-6 z-50 p-3 rounded-full bg-orange-300 text-white shadow-lg transition-all duration-500 ease-in-out hover:bg-orange-600 hover:scale-110
+  ${showButton ? "translate-x-0 opacity-100" : "translate-x-24 opacity-0"}`}
+      >
+        <IoArrowUpOutline size={24} />
+      </button>
+
       <Footer />
 
     </div>
