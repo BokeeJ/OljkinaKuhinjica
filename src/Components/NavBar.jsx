@@ -53,8 +53,9 @@ function NavBar() {
             <div className="flex lg:justify-center justify-between items-center lg:w-[60%] md:w-[70%] w-[80%] py-4">
                 <nav>
                     <ul className="lg:flex gap-6 m-5 hidden text-lg">
+                        <NavLink to='/' className="hover:text-orange-400 transition">Naslovna</NavLink>
                         <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
-                        <NavLink to="/saradnja" className="hover:text-orange-400 transition">Saradnja</NavLink>
+
                     </ul>
                     <RxHamburgerMenu
                         onClick={toggleMenu}
@@ -99,10 +100,11 @@ function NavBar() {
                 className={`absolute top-0 backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-500 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
                 <SlClose onClick={() => setIsOpen(false)} size={30} className='right-10 top-10 absolute hover:text-orange-300 cursor-pointer' />
                 <ul className="gap-5 m-2 flex flex-col text-lg">
+                    <NavLink to="/saradnja" className="hover:text-orange-400 transition">Naslovna</NavLink>
                     <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
                     <NavLink to="/omeni" className="hover:text-orange-400 transition">O meni</NavLink>
                     <NavLink to="/kontakt" className="hover:text-orange-400 transition">Kontakt</NavLink>
-                    <NavLink to="/saradnja" className="hover:text-orange-400 transition">Saradnja</NavLink>
+
                 </ul>
 
             </div>

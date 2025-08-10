@@ -2,11 +2,27 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config.js';
 
+// slug -> label (tačno kao u Mongoose enumu)
+const SUBCATEGORY_MAP = {
+    'kolaci': 'Kolaci',
+    'torte': 'Torte',
+    'rucak': 'Rucak',
+    'dorucak': 'Dorucak',
+    'vecera': 'Vecera',
+    'uzina': 'Uzina',
+    'pica': 'Pica',
+    'salate': 'Salate',
+    'hladna-jela': 'Hladna jela',
+    'brza-jela': 'Brza jela',
+    'supe-i-corbe': 'Supe i čorbe',
+    'pecivo': 'Pecivo',
+};
+
 function AddRecipe() {
     const [form, setForm] = useState({
         title: '',
         category: 'slano',
-        subcategory: '',
+        subcategory: '',         // čuva slug, npr. "supe-i-corbe"
         preparationTime: '',
         ingredients: '',
         instructions: '',
@@ -35,44 +51,68 @@ function AddRecipe() {
             alert('Molimo dodajte naslovnu sliku!');
             return;
         }
+        if (!form.subcategory) {
+            alert('Izaberite podkategoriju.');
+            return;
+        }
+
+        // mapiraj slug -> label za backend
+        const subLabel = SUBCATEGORY_MAP[form.subcategory];
+        if (!subLabel) {
+            alert('Nepoznata podkategorija.');
+            return;
+        }
 
         const formData = new FormData();
-        formData.append('title', form.title);
-        formData.append('category', form.category);
-        formData.append('subcategory', form.subcategory);
+        formData.append('title', form.title.trim());
+        formData.append('category', String(form.category || '').toLowerCase()); // 'slano' | 'slatko'
+        formData.append('subcategory', subLabel); // TAČNO ime iz enuma
         formData.append('preparationTime', form.preparationTime);
         formData.append('instructions', form.instructions);
-        formData.append('note', form.note); // ✅ napomena
+        formData.append('note', form.note || '');
         formData.append('coverImage', form.coverImage);
 
+        // sastojci – po jedan u redu
         const ingredientsArray = form.ingredients
             .split('\n')
             .map(s => s.trim())
             .filter(Boolean);
         ingredientsArray.forEach((ing) => formData.append('ingredients', ing));
 
+        // galerija
         form.gallery.forEach((file) => formData.append('gallery', file));
 
         try {
             const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-
             if (!token) {
                 alert('Token nije pronađen. Prijavite se ponovo.');
                 return;
             }
 
             const res = await axios.post(`${API_BASE_URL}/api/recipes`, formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
+
             alert('Recept dodat!');
             console.log(res.data);
+
+            // opcionalno: reset forme
+            setForm({
+                title: '',
+                category: 'slano',
+                subcategory: '',
+                preparationTime: '',
+                ingredients: '',
+                instructions: '',
+                note: '',
+                coverImage: null,
+                gallery: []
+            });
+
         } catch (err) {
             console.error('❌ Greska:', err?.response?.data || err.message || err);
             alert(err?.response?.data?.error || err.message || 'Greška pri dodavanju recepta');
         }
-
     };
 
     return (
@@ -93,35 +133,32 @@ function AddRecipe() {
             </select>
 
             <label className='text-orange-300 font-bold'>Podkategorija:</label>
+            {/* VREDNOSTI SU SLUG-OVI */}
             <select name="subcategory" value={form.subcategory} onChange={handleChange} required>
                 <option value="">Izaberi podkategoriju...</option>
-                <option value="kolaci">Kolači</option>
-                <option value="torte">Torte</option>
-                <option value="rucak">Ručak</option>
-                <option value="dorucak">Doručak</option>
-                <option value="vecera">Večera</option>
-                <option value="uzina">Užina</option>
-                <option value="pica">Pica</option>
-                <option value="salate">Salate</option>
-                <option value="hladna jela">Hladna jela</option>
-                <option value="brza jela">Brza jela</option>
+                <optgroup label="Slatko">
+                    <option value="kolaci">Kolači</option>
+                    <option value="torte">Torte</option>
+                </optgroup>
+                <optgroup label="Slano">
+                    <option value="dorucak">Doručak</option>
+                    <option value="rucak">Ručak</option>
+                    <option value="vecera">Večera</option>
+                    <option value="pica">Pica</option>
+                    <option value="brza-jela">Brza jela</option>
+                    <option value="salate">Salate</option>
+                    <option value="hladna-jela">Hladna jela</option>
+                    <option value="uzina">Užina</option>
+                    <option value="supe-i-corbe">Supe i čorbe</option>
+                    <option value="pecivo">Pecivo</option>
+                </optgroup>
             </select>
 
             <h6 className='text-orange-300 font-bold'>Cover slika:</h6>
-            <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverImageChange}
-                required
-            />
+            <input type="file" accept="image/*" onChange={handleCoverImageChange} required />
 
             <h6 className='text-orange-300 font-bold'>Galerija (slike/video):</h6>
-            <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handleGalleryChange}
-            />
+            <input type="file" accept="image/*,video/*" multiple onChange={handleGalleryChange} />
 
             <input
                 name="preparationTime"
@@ -149,7 +186,6 @@ function AddRecipe() {
                 required
             />
 
-            {/* ✅ Nova napomena */}
             <label className='text-orange-300 font-bold'>Napomena (opciono):</label>
             <textarea
                 name="note"

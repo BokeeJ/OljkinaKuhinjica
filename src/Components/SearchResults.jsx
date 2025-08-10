@@ -37,7 +37,7 @@ function SearchResults({
                     onClick={() => handleResultClick(`/recept/${r._id}`)}
                 >
                     {r.title}
-                    <LuCakeSlice color="orange" />
+                    <LuCakeSlice color="white" />
                 </div>
             ))}
         </div>

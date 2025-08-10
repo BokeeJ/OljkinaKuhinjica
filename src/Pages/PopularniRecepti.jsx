@@ -8,6 +8,21 @@ import { API_BASE_URL } from '../config.js';
 function PopularniRecepti() {
     const [recipes, setRecipes] = useState([]);
     const [search, setSearch] = useState('');
+    const [itemsToShow, setItemsToShow] = useState(5); // default 5
+
+    // ✅ Podešavanje broja recepata prema veličini ekrana
+    useEffect(() => {
+        const updateItems = () => {
+            if (window.innerWidth < 768) {
+                setItemsToShow(6); // mali ekran
+            } else {
+                setItemsToShow(5); // veliki ekran
+            }
+        };
+        updateItems();
+        window.addEventListener("resize", updateItems);
+        return () => window.removeEventListener("resize", updateItems);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -22,9 +37,9 @@ function PopularniRecepti() {
         fetchData();
     }, []);
 
-    const filteredRecipes = recipes.filter((r) =>
-        r.title.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredRecipes = recipes
+        .filter((r) => r.title.toLowerCase().includes(search.toLowerCase()))
+        .slice(0, itemsToShow); // ✨ Ovde se primenjuje limit
 
     return (
         <div className="p-4 bg-gradient-to-b mt-5 min-h-screen">
