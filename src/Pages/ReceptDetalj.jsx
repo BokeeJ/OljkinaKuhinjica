@@ -61,10 +61,15 @@ function ReceptDetalji() {
                         <div className='flex flex-col sm:flex-row sm:gap-6'></div>
 
                         <div>
-                            <h5 className='font-semibold text-orange-300'>Uputstvo za pripremu:</h5>
-                            <p className='whitespace-pre-line text-sm'>
-                                {recipe.instructions}
-                            </p>
+                            <h5 className="font-semibold text-orange-300">Uputstvo za pripremu:</h5>
+                            <ol className="list-decimal list-inside text-sm space-y-1">
+                                {recipe.instructions
+                                    ?.split('\n')
+                                    .filter(line => line.trim() !== '')
+                                    .map((step, index) => (
+                                        <li key={index}>{step}</li>
+                                    ))}
+                            </ol>
                         </div>
                         <div>
                             <h5 className='font-semibold text-orange-300'>Vreme spremanja:</h5>
@@ -74,7 +79,7 @@ function ReceptDetalji() {
                         </div>
                         <div>
                             <h5 className='font-semibold text-orange-300 '>Napomena:
-                                <p className='text-black'>
+                                <p className='text-black text-center'>
                                     {recipe.note || 'Nema napomene.'}
                                 </p>
                             </h5>
