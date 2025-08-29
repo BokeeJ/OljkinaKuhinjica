@@ -1,50 +1,93 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { API_BASE_URL } from "../config";
 import RecipeFilter from "../Components/RecipeFilter";
 
 function SviRecepti() {
     const userId = "user123";
-    const [recipes, setRecipes] = useState([]);
-    const [search, setSearch] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState("");
-    const [subCategory, setSubCategory] = useState("");
-    const [favorites, setFavorites] = useState(
-        () => JSON.parse(localStorage.getItem(`favorites_${userId}`)) || []
-    );
-    const [likedRecipes, setLikedRecipes] = useState(
-        () => JSON.parse(localStorage.getItem("liked_recipes") || "[]")
-    );
-    const [currentPage, setCurrentPage] = useState(1);
-    const perPage = 12;
+
+    // --- helpers ---
+    const safeJSON = (text, fallback) => {
+        try { return JSON.parse(text); } catch { return fallback; }
+    };
+
+    // Cloudinary optimizacija (bez dodatne memorije)
+    const cdn = (url, w = 0) => {
+        if (!url) return url;
+        const i = url.indexOf("/upload/");
+        if (i === -1) return url;
+        const trans = `f_auto,q_auto${w ? `,w_${w}` : ""}`;
+        return url.slice(0, i + 8) + trans + "/" + url.slice(i + 8);
+    };
 
     const normalizeText = (text = "") => {
         try {
-            return text
-                .normalize("NFD")
-                .replace(/\p{Diacritic}/gu, "")
-                .toLowerCase();
+            return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
         } catch {
-            // fallback za Safari/regex engine
-            return text
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .toLowerCase();
+            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
     };
 
+    // >>> PAGINATION WINDOW HELPER (dodato) <<<
+    function makePageList(total, current, max = 9) {
+        if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
+
+        const pages = [1];
+        const windowSize = max - 2; // bez prve i poslednje
+        let left = Math.max(2, current - Math.floor(windowSize / 2));
+        let right = Math.min(total - 1, left + windowSize - 1);
+
+        if (right - left + 1 < windowSize) left = Math.max(2, right - windowSize + 1);
+
+        if (left > 2) pages.push("…");
+        for (let p = left; p <= right; p++) pages.push(p);
+        if (right < total - 1) pages.push("…");
+        pages.push(total);
+
+        return pages;
+    }
+
+    // --- state ---
+    const [recipes, setRecipes] = useState([]); // uvek niz
+    const [search, setSearch] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
+    const [subCategory, setSubCategory] = useState("");
+
+    const [favorites, setFavorites] = useState(() =>
+        safeJSON(localStorage.getItem(`favorites_${userId}`), [])
+    );
+    const [likedRecipes, setLikedRecipes] = useState(() =>
+        safeJSON(localStorage.getItem("liked_recipes"), [])
+    );
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const perPage = 12;
+
+    // --- fetch ---
     useEffect(() => {
-        axios.get(`${API_BASE_URL}/api/recipes`).then((res) => setRecipes(res.data));
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/api/recipes`, { withCredentials: true });
+                const data = Array.isArray(res.data) ? res.data : [];
+                if (!cancelled) setRecipes(data);
+            } catch (err) {
+                console.error("Greška pri učitavanju recepata:", err);
+                if (!cancelled) setRecipes([]);
+            }
+        })();
+        return () => { cancelled = true; };
     }, []);
 
-    // Reset paginacije kad se menja filter ili pretraga
+    // reset paginacije kad se menja filter/pretraga
     useEffect(() => {
         setCurrentPage(1);
     }, [search, categoryFilter, subCategory]);
 
+    // --- actions ---
     const handleLike = async (id) => {
         if (likedRecipes.includes(id)) {
             alert("Već si lajkovao ovaj recept!");
@@ -53,7 +96,9 @@ function SviRecepti() {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/recipes/${id}/like`);
             setRecipes((prev) =>
-                prev.map((r) => (r._id === id ? { ...r, likes: res.data.likes } : r))
+                (Array.isArray(prev) ? prev : []).map((r) =>
+                    r._id === id ? { ...r, likes: res.data?.likes ?? (r.likes || 0) } : r
+                )
             );
             const updated = [...likedRecipes, id];
             setLikedRecipes(updated);
@@ -65,31 +110,10 @@ function SviRecepti() {
 
     const handleFavorite = (id) => {
         let updated = [...favorites];
-        updated = updated.includes(id)
-            ? updated.filter((f) => f !== id)
-            : [...updated, id];
+        updated = updated.includes(id) ? updated.filter((f) => f !== id) : [...updated, id];
         setFavorites(updated);
         localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
-
-    const filteredRecipes = useMemo(() => {
-        const s = normalizeText(search);
-        const cat = normalizeText(categoryFilter);
-        const sub = normalizeText(subCategory);
-
-        return recipes.filter((r) => {
-            const titleOk = normalizeText(r.title).includes(s);
-            const catOk = cat ? normalizeText(r.category) === cat : true;
-            const subOk = sub ? normalizeText(r.subcategory || "") === sub : true;
-            return titleOk && catOk && subOk;
-        });
-    }, [recipes, search, categoryFilter, subCategory]);
-
-    const totalPages = Math.ceil(filteredRecipes.length / perPage);
-    const currentRecipes = filteredRecipes.slice(
-        (currentPage - 1) * perPage,
-        currentPage * perPage
-    );
 
     const handleSubCategorySelect = (cat, sub) => {
         setCategoryFilter(cat);
@@ -106,6 +130,28 @@ function SviRecepti() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
+    // --- derive ---
+    const list = Array.isArray(recipes) ? recipes : []; // guard
+
+    const filteredRecipes = useMemo(() => {
+        const s = normalizeText(search);
+        const cat = normalizeText(categoryFilter);
+        const sub = normalizeText(subCategory);
+
+        return list.filter((r) => {
+            const titleOk = normalizeText(r?.title || "").includes(s);
+            const catOk = cat ? normalizeText(r?.category || "") === cat : true;
+            const subOk = sub ? normalizeText(r?.subcategory || "") === sub : true;
+            return titleOk && catOk && subOk;
+        });
+    }, [list, search, categoryFilter, subCategory]);
+
+    const totalPages = Math.ceil(filteredRecipes.length / perPage) || 0;
+    const currentRecipes = filteredRecipes.slice(
+        (currentPage - 1) * perPage,
+        currentPage * perPage
+    );
+
     return (
         <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-gray-600">
             {/* SEARCH */}
@@ -121,10 +167,7 @@ function SviRecepti() {
 
             {/* FILTERI */}
             <div className="relative flex flex-wrap justify-center gap-3 mb-6 w-full max-w-7xl">
-                <RecipeFilter
-                    onSelect={(cat, sub) => handleSubCategorySelect(cat, sub)}
-                    onReset={resetFilters}
-                />
+                <RecipeFilter onSelect={handleSubCategorySelect} onReset={resetFilters} />
 
                 <Link
                     to="/popularni"
@@ -152,9 +195,9 @@ function SviRecepti() {
                         transition={{ duration: 0.3 }}
                     >
                         <div>
-                            {r.coverImage?.url && (
+                            {r?.coverImage?.url && (
                                 <img
-                                    src={r.coverImage.url}
+                                    src={cdn(r.coverImage.url, 480)}
                                     alt={r.title}
                                     className="w-full h-28 object-cover"
                                     loading="lazy"
@@ -164,14 +207,15 @@ function SviRecepti() {
                                 <h2 className="text-xs font-bold text-gray-800 line-clamp-1">
                                     {r.title}
                                 </h2>
-                                <p className="text-[9px] mt-1 text-orange-400">
-                                    ⏱ {r.preparationTime} min
-                                </p>
+                                {/* preparationTime je string ("30min" / "6h"), ne dodajemo "min" na silu */}
+                                {r.preparationTime && (
+                                    <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime}</p>
+                                )}
                             </div>
                         </div>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">
                             <p className="text-gray-400 text-[8px]">
-                                {new Date(r.createdAt).toLocaleString("sr-RS")}
+                                {r.createdAt ? new Date(r.createdAt).toLocaleString("sr-RS") : ""}
                             </p>
                             <div className="flex items-center gap-1">
                                 <button
@@ -212,45 +256,78 @@ function SviRecepti() {
                 </div>
             )}
 
-            {/* PAGINACIJA */}
+            {/* PAGINACIJA (prepravljeno – prozor + elipse) */}
             {totalPages > 1 && (
-                <div className="flex justify-center mt-8 space-x-1 items-center">
-                    <button
-                        onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                        disabled={currentPage === 1}
-                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
-                            }`}
-                    >
-                        ←
-                    </button>
-
-                    {[...Array(totalPages).keys()].map((num) => (
+                <div className="w-full max-w-7xl mt-8 px-2">
+                    <div className="flex flex-wrap justify-center items-center gap-1">
                         <button
-                            key={num}
-                            onClick={() => handlePageChange(num + 1)}
-                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === num + 1
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                            onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                            disabled={currentPage === 1}
+                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
                                 }`}
+                            aria-label="Prethodna strana"
                         >
-                            {num + 1}
+                            ←
                         </button>
-                    ))}
 
-                    <button
-                        onClick={() =>
-                            handlePageChange(Math.min(currentPage + 1, totalPages))
-                        }
-                        disabled={currentPage === totalPages}
-                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
-                            }`}
-                    >
-                        →
-                    </button>
+                        {makePageList(totalPages, currentPage, 9).map((item, idx) =>
+                            item === "…" ? (
+                                <span
+                                    key={`dots-${idx}`}
+                                    className="px-2 py-1 text-[10px] text-gray-500 select-none"
+                                >
+                                    …
+                                </span>
+                            ) : (
+                                <button
+                                    key={item}
+                                    onClick={() => handlePageChange(item)}
+                                    className={`px-2 py-1 rounded-full text-[10px] ${currentPage === item
+                                            ? "bg-emerald-500 text-white"
+                                            : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                                        }`}
+                                    aria-current={currentPage === item ? "page" : undefined}
+                                >
+                                    {item}
+                                </button>
+                            )
+                        )}
+
+                        <button
+                            onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                                }`}
+                            aria-label="Sledeća strana"
+                        >
+                            →
+                        </button>
+                    </div>
+
+                    {/* (opciono) skok na stranu */}
+                    <div className="mt-3 flex justify-center gap-2 text-[10px] text-gray-600">
+                        <span>Strana {currentPage} / {totalPages}</span>
+                        <label className="inline-flex items-center gap-1">
+                            Idi na:
+                            <input
+                                type="number"
+                                min={1}
+                                max={totalPages}
+                                defaultValue={currentPage}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        const v = Math.min(Math.max(1, Number(e.currentTarget.value || 1)), totalPages);
+                                        handlePageChange(v);
+                                    }
+                                }}
+                                className="w-16 px-1 py-0.5 border rounded"
+                            />
+                        </label>
+                    </div>
                 </div>
             )}
         </div>
