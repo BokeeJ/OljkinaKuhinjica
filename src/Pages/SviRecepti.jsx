@@ -10,11 +10,17 @@ function SviRecepti() {
     const userId = "user123";
 
     // --- helpers ---
-    const safeJSON = (text, fallback) => {
-        try { return JSON.parse(text); } catch { return fallback; }
+    const getLSArray = (key) => {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return [];
+            const v = JSON.parse(raw);
+            return Array.isArray(v) ? v : [];
+        } catch {
+            return [];
+        }
     };
 
-    // Cloudinary optimizacija (bez dodatne memorije)
     const cdn = (url, w = 0) => {
         if (!url) return url;
         const i = url.indexOf("/upload/");
@@ -31,40 +37,38 @@ function SviRecepti() {
         }
     };
 
-    // >>> PAGINATION WINDOW HELPER (dodato) <<<
+    // pagination window helper
     function makePageList(total, current, max = 9) {
         if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
-
         const pages = [1];
-        const windowSize = max - 2; // bez prve i poslednje
+        const windowSize = max - 2;
         let left = Math.max(2, current - Math.floor(windowSize / 2));
         let right = Math.min(total - 1, left + windowSize - 1);
-
         if (right - left + 1 < windowSize) left = Math.max(2, right - windowSize + 1);
-
         if (left > 2) pages.push("…");
         for (let p = left; p <= right; p++) pages.push(p);
         if (right < total - 1) pages.push("…");
         pages.push(total);
-
         return pages;
     }
 
     // --- state ---
-    const [recipes, setRecipes] = useState([]); // uvek niz
+    const [recipes, setRecipes] = useState([]);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [subCategory, setSubCategory] = useState("");
 
-    const [favorites, setFavorites] = useState(() =>
-        safeJSON(localStorage.getItem(`favorites_${userId}`), [])
-    );
-    const [likedRecipes, setLikedRecipes] = useState(() =>
-        safeJSON(localStorage.getItem("liked_recipes"), [])
-    );
+    const [favorites, setFavorites] = useState(() => getLSArray(`favorites_${userId}`));
+    const [likedRecipes, setLikedRecipes] = useState(() => getLSArray("liked_recipes"));
 
     const [currentPage, setCurrentPage] = useState(1);
     const perPage = 12;
+
+    // derived guards
+    const favoritesArr = Array.isArray(favorites) ? favorites : [];
+    const likedArr = Array.isArray(likedRecipes) ? likedRecipes : [];
+    const favSet = useMemo(() => new Set(favoritesArr), [favoritesArr]);
+    const likedSet = useMemo(() => new Set(likedArr), [likedArr]);
 
     // --- fetch ---
     useEffect(() => {
@@ -83,13 +87,11 @@ function SviRecepti() {
     }, []);
 
     // reset paginacije kad se menja filter/pretraga
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search, categoryFilter, subCategory]);
+    useEffect(() => { setCurrentPage(1); }, [search, categoryFilter, subCategory]);
 
     // --- actions ---
     const handleLike = async (id) => {
-        if (likedRecipes.includes(id)) {
+        if (likedSet.has(id)) {
             alert("Već si lajkovao ovaj recept!");
             return;
         }
@@ -100,7 +102,7 @@ function SviRecepti() {
                     r._id === id ? { ...r, likes: res.data?.likes ?? (r.likes || 0) } : r
                 )
             );
-            const updated = [...likedRecipes, id];
+            const updated = [...likedArr, id];
             setLikedRecipes(updated);
             localStorage.setItem("liked_recipes", JSON.stringify(updated));
         } catch (err) {
@@ -109,8 +111,12 @@ function SviRecepti() {
     };
 
     const handleFavorite = (id) => {
-        let updated = [...favorites];
-        updated = updated.includes(id) ? updated.filter((f) => f !== id) : [...updated, id];
+        let updated;
+        if (favSet.has(id)) {
+            updated = favoritesArr.filter((f) => f !== id);
+        } else {
+            updated = [...favoritesArr, id];
+        }
         setFavorites(updated);
         localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
@@ -131,7 +137,7 @@ function SviRecepti() {
     };
 
     // --- derive ---
-    const list = Array.isArray(recipes) ? recipes : []; // guard
+    const list = Array.isArray(recipes) ? recipes : [];
 
     const filteredRecipes = useMemo(() => {
         const s = normalizeText(search);
@@ -207,7 +213,6 @@ function SviRecepti() {
                                 <h2 className="text-xs font-bold text-gray-800 line-clamp-1">
                                     {r.title}
                                 </h2>
-                                {/* preparationTime je string ("30min" / "6h"), ne dodajemo "min" na silu */}
                                 {r.preparationTime && (
                                     <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime}</p>
                                 )}
@@ -220,8 +225,8 @@ function SviRecepti() {
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => handleLike(r._id)}
-                                    disabled={likedRecipes.includes(r._id)}
-                                    className={`rounded-full px-2 py-0.5 text-[9px] ${likedRecipes.includes(r._id)
+                                    disabled={likedSet.has(r._id)}
+                                    className={`rounded-full px-2 py-0.5 text-[9px] ${likedSet.has(r._id)
                                             ? "bg-gray-400 text-white cursor-not-allowed"
                                             : "bg-emerald-500 text-white hover:bg-emerald-600"
                                         }`}
@@ -230,7 +235,7 @@ function SviRecepti() {
                                 </button>
                                 <button
                                     onClick={() => handleFavorite(r._id)}
-                                    className={`rounded-full p-1 flex items-center justify-center ${favorites.includes(r._id)
+                                    className={`rounded-full p-1 flex items-center justify-center ${favSet.has(r._id)
                                             ? "bg-emerald-600 text-white"
                                             : "bg-gray-300 text-gray-600 hover:bg-emerald-100"
                                         }`}
@@ -256,7 +261,7 @@ function SviRecepti() {
                 </div>
             )}
 
-            {/* PAGINACIJA (prepravljeno – prozor + elipse) */}
+            {/* PAGINACIJA */}
             {totalPages > 1 && (
                 <div className="w-full max-w-7xl mt-8 px-2">
                     <div className="flex flex-wrap justify-center items-center gap-1">
@@ -308,7 +313,6 @@ function SviRecepti() {
                         </button>
                     </div>
 
-                    {/* (opciono) skok na stranu */}
                     <div className="mt-3 flex justify-center gap-2 text-[10px] text-gray-600">
                         <span>Strana {currentPage} / {totalPages}</span>
                         <label className="inline-flex items-center gap-1">
