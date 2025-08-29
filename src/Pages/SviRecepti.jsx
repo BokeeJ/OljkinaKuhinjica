@@ -16,9 +16,7 @@ function SviRecepti() {
             if (!raw) return [];
             const v = JSON.parse(raw);
             return Array.isArray(v) ? v : [];
-        } catch {
-            return [];
-        }
+        } catch { return []; }
     };
 
     const cdn = (url, w = 0) => {
@@ -30,14 +28,11 @@ function SviRecepti() {
     };
 
     const normalizeText = (text = "") => {
-        try {
-            return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-        } catch {
-            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        }
+        try { return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase(); }
+        catch { return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
     };
 
-    // pagination window helper
+    // kompaktnija paginacija (prozor + elipse)
     function makePageList(total, current, max = 9) {
         if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
         const pages = [1];
@@ -53,7 +48,10 @@ function SviRecepti() {
     }
 
     // --- state ---
-    const [recipes, setRecipes] = useState([]);
+    const [items, setItems] = useState([]);     // trenutna strana sa servera
+    const [totalPages, setTotalPages] = useState(0);
+    const [total, setTotal] = useState(0);
+
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [subCategory, setSubCategory] = useState("");
@@ -64,29 +62,40 @@ function SviRecepti() {
     const [currentPage, setCurrentPage] = useState(1);
     const perPage = 12;
 
-    // derived guards
-    const favoritesArr = Array.isArray(favorites) ? favorites : [];
-    const likedArr = Array.isArray(likedRecipes) ? likedRecipes : [];
-    const favSet = useMemo(() => new Set(favoritesArr), [favoritesArr]);
-    const likedSet = useMemo(() => new Set(likedArr), [likedArr]);
+    const favSet = useMemo(() => new Set(Array.isArray(favorites) ? favorites : []), [favorites]);
+    const likedSet = useMemo(() => new Set(Array.isArray(likedRecipes) ? likedRecipes : []), [likedRecipes]);
 
-    // --- fetch ---
+    // --- server fetch (paginirano + filters) ---
     useEffect(() => {
         let cancelled = false;
+
+        const params = new URLSearchParams();
+        params.set("page", String(currentPage));
+        params.set("limit", String(perPage));
+        if (search.trim()) params.set("q", search.trim());
+        if (categoryFilter) params.set("category", normalizeText(categoryFilter));
+        if (subCategory) params.set("subcategory", subCategory); // kejpser ostaje isti
+
         (async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/recipes`, { withCredentials: true });
-                const data = Array.isArray(res.data) ? res.data : [];
-                if (!cancelled) setRecipes(data);
-            } catch (err) {
-                console.error("Greška pri učitavanju recepata:", err);
-                if (!cancelled) setRecipes([]);
+                const url = `${API_BASE_URL}/api/recipes/page?` + params.toString();
+                const res = await axios.get(url, { withCredentials: true });
+                const { items = [], totalPages = 0, total = 0 } = res.data || {};
+                if (!cancelled) {
+                    setItems(Array.isArray(items) ? items : []);
+                    setTotalPages(Number(totalPages) || 0);
+                    setTotal(Number(total) || 0);
+                }
+            } catch (e) {
+                console.error("Greška pri učitavanju (page):", e);
+                if (!cancelled) { setItems([]); setTotalPages(0); setTotal(0); }
             }
         })();
-        return () => { cancelled = true; };
-    }, []);
 
-    // reset paginacije kad se menja filter/pretraga
+        return () => { cancelled = true; };
+    }, [API_BASE_URL, currentPage, search, categoryFilter, subCategory]);
+
+    // reset page kad menjamo filter/pretragu
     useEffect(() => { setCurrentPage(1); }, [search, categoryFilter, subCategory]);
 
     // --- actions ---
@@ -97,12 +106,10 @@ function SviRecepti() {
         }
         try {
             const res = await axios.post(`${API_BASE_URL}/api/recipes/${id}/like`);
-            setRecipes((prev) =>
-                (Array.isArray(prev) ? prev : []).map((r) =>
-                    r._id === id ? { ...r, likes: res.data?.likes ?? (r.likes || 0) } : r
-                )
-            );
-            const updated = [...likedArr, id];
+            setItems(prev => (Array.isArray(prev) ? prev : []).map(r =>
+                r._id === id ? { ...r, likes: res.data?.likes ?? (r.likes || 0) } : r
+            ));
+            const updated = [...(Array.isArray(likedRecipes) ? likedRecipes : []), id];
             setLikedRecipes(updated);
             localStorage.setItem("liked_recipes", JSON.stringify(updated));
         } catch (err) {
@@ -111,12 +118,8 @@ function SviRecepti() {
     };
 
     const handleFavorite = (id) => {
-        let updated;
-        if (favSet.has(id)) {
-            updated = favoritesArr.filter((f) => f !== id);
-        } else {
-            updated = [...favoritesArr, id];
-        }
+        const arr = Array.isArray(favorites) ? favorites : [];
+        const updated = favSet.has(id) ? arr.filter(f => f !== id) : [...arr, id];
         setFavorites(updated);
         localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
@@ -136,28 +139,6 @@ function SviRecepti() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    // --- derive ---
-    const list = Array.isArray(recipes) ? recipes : [];
-
-    const filteredRecipes = useMemo(() => {
-        const s = normalizeText(search);
-        const cat = normalizeText(categoryFilter);
-        const sub = normalizeText(subCategory);
-
-        return list.filter((r) => {
-            const titleOk = normalizeText(r?.title || "").includes(s);
-            const catOk = cat ? normalizeText(r?.category || "") === cat : true;
-            const subOk = sub ? normalizeText(r?.subcategory || "") === sub : true;
-            return titleOk && catOk && subOk;
-        });
-    }, [list, search, categoryFilter, subCategory]);
-
-    const totalPages = Math.ceil(filteredRecipes.length / perPage) || 0;
-    const currentRecipes = filteredRecipes.slice(
-        (currentPage - 1) * perPage,
-        currentPage * perPage
-    );
-
     return (
         <div className="p-4 mt-5 min-h-screen flex flex-col items-center bg-gradient-to-b from-white to-gray-600">
             {/* SEARCH */}
@@ -169,6 +150,9 @@ function SviRecepti() {
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full sm:max-w-[360px] mx-auto block p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/70"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                    Prikazujem {(items || []).length} od {total} rezultata
+                </p>
             </div>
 
             {/* FILTERI */}
@@ -189,9 +173,9 @@ function SviRecepti() {
                 </Link>
             </div>
 
-            {/* RECEPTI */}
+            {/* RECEPTI (trenutna strana sa servera) */}
             <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 w-full max-w-7xl">
-                {currentRecipes.map((r) => (
+                {(items || []).map((r) => (
                     <motion.div
                         key={r._id}
                         className="bg-gradient-to-b from-gray-400 to-white rounded-lg shadow hover:shadow-lg overflow-hidden transition-all duration-300"
@@ -255,13 +239,13 @@ function SviRecepti() {
                 ))}
             </div>
 
-            {currentRecipes.length === 0 && (
+            {(items || []).length === 0 && (
                 <div className="text-center mt-6 text-gray-600">
                     Nema rezultata za: <strong>{search}</strong>
                 </div>
             )}
 
-            {/* PAGINACIJA */}
+            {/* PAGINACIJA (server-side) */}
             {totalPages > 1 && (
                 <div className="w-full max-w-7xl mt-8 px-2">
                     <div className="flex flex-wrap justify-center items-center gap-1">
@@ -279,12 +263,7 @@ function SviRecepti() {
 
                         {makePageList(totalPages, currentPage, 9).map((item, idx) =>
                             item === "…" ? (
-                                <span
-                                    key={`dots-${idx}`}
-                                    className="px-2 py-1 text-[10px] text-gray-500 select-none"
-                                >
-                                    …
-                                </span>
+                                <span key={`dots-${idx}`} className="px-2 py-1 text-[10px] text-gray-500 select-none">…</span>
                             ) : (
                                 <button
                                     key={item}
@@ -311,26 +290,6 @@ function SviRecepti() {
                         >
                             →
                         </button>
-                    </div>
-
-                    <div className="mt-3 flex justify-center gap-2 text-[10px] text-gray-600">
-                        <span>Strana {currentPage} / {totalPages}</span>
-                        <label className="inline-flex items-center gap-1">
-                            Idi na:
-                            <input
-                                type="number"
-                                min={1}
-                                max={totalPages}
-                                defaultValue={currentPage}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        const v = Math.min(Math.max(1, Number(e.currentTarget.value || 1)), totalPages);
-                                        handlePageChange(v);
-                                    }
-                                }}
-                                className="w-16 px-1 py-0.5 border rounded"
-                            />
-                        </label>
                     </div>
                 </div>
             )}

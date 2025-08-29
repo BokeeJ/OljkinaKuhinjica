@@ -23,7 +23,7 @@ function Savet() {
                     src="/oljka12.webp"
                     alt="Timski rad"
                     loading='lazy'
-                    className='h-[80%] w-full  p-2 rounded-4xl'
+                    className='h-[80%] w-full  p-2 rounded-4xl object-cover'
                 />
             </div>
             <motion.div
