@@ -10,6 +10,7 @@ import SearchResults from './Components/SearchResults';
 import { AuroraBackground } from "./Components/ui/aurora-background";
 import { API_BASE_URL } from './config';
 import { IoArrowUpOutline } from "react-icons/io5";
+import DesignBy from './Components/DesignBy';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
@@ -109,7 +110,7 @@ function App() {
       </button>
 
       <Footer />
-
+      <DesignBy />
     </div>
   );
 }
