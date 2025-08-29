@@ -1,20 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sr-RS">
 	<head>
 		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
-		<!-- Fonts -->
-		<link
-			href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-			rel="stylesheet"
-		/>
+		<meta http-equiv="Content-Language" content="sr-RS" />
 		<meta
 			name="viewport"
-			content="width=device-width, initial-scale=1.0"
+			content="width=device-width, initial-scale=1"
 		/>
-		<title>OljkinaKuhinjica</title>
+		<meta
+			name="robots"
+			content="index, follow, max-image-preview:large"
+		/>
+
+		<title>
+			Oljkina Kuhinjica — domaći recepti za kolače, ručak i večeru
+		</title>
+		<meta
+			name="description"
+			content="Oljkina Kuhinjica: stotine proverenih recepata — kolači, torte, ručak, večera, supe i čorbe, peciva. Jasna uputstva, sastojci i vreme pripreme."
+		/>
+		<meta
+			name="keywords"
+			content="recepti, kolači, torte, ručak, večera, pecivo, supe i čorbe, oljkina kuhinjica"
+		/>
+
+		<!-- Canonical / hreflang -->
+		<link rel="canonical" href="https://oljka.rs/" />
+		<link rel="alternate" href="https://oljka.rs/" hreflang="sr-RS" />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content="website" />
+		<meta property="og:locale" content="sr_RS" />
+		<meta property="og:site_name" content="Oljkina Kuhinjica" />
+		<meta
+			property="og:title"
+			content="Oljkina Kuhinjica — domaći recepti za kolače, ručak i večeru"
+		/>
+		<meta
+			property="og:description"
+			content="Provereni domaći recepti sa jasnim uputstvima i slikama — slatko i slano na jednom mestu."
+		/>
+		<meta property="og:url" content="https://oljka.rs/" />
+		<meta
+			property="og:image"
+			content="https://oljka.rs/logoOljka.png"
+		/>
+		<meta
+			property="og:image:alt"
+			content="Oljkina Kuhinjica — logo"
+		/>
+
+		<!-- Twitter -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta
+			name="twitter:title"
+			content="Oljkina Kuhinjica — domaći recepti za kolače, ručak i večeru"
+		/>
+		<meta
+			name="twitter:description"
+			content="Provereni domaći recepti sa jasnim uputstvima i slikama — slatko i slano na jednom mestu."
+		/>
+		<meta
+			name="twitter:image"
+			content="https://oljka.rs/logoOljka.png"
+		/>
+
+		<!-- Theme / PWA-ish -->
+		<meta name="theme-color" content="#10b981" />
+		<meta name="color-scheme" content="light dark" />
+		<!-- <link rel="manifest" href="/site.webmanifest" /> -->
+
+		<!-- Favicons (logoOljka.png) -->
+		<link rel="icon" type="image/png" href="/logoOljka.png" />
+		<link rel="apple-touch-icon" href="/logoOljka.png" />
+		<!-- (možeš ostaviti i SVG/ICO ako želiš) -->
+		<!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
+		<!-- <link rel="icon" href="/favicon.ico" sizes="any" /> -->
+
+		<!-- Fonts (preconnect + stylesheet sa crossorigin) -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			rel="preconnect"
+			href="https://fonts.gstatic.com"
+			crossorigin
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:ital,wght@0,100..900;1,100..900&display=swap"
+			rel="stylesheet"
+		/>
+
+		<!-- Perf hints (Cloudinary, backend) -->
+		<link rel="dns-prefetch" href="//res.cloudinary.com" />
+		<link
+			rel="preconnect"
+			href="https://res.cloudinary.com"
+			crossorigin
+		/>
+		<link
+			rel="dns-prefetch"
+			href="//kuhinjica-backend-production.up.railway.app"
+		/>
+
+		<!-- Structured Data: WebSite + SearchAction -->
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "WebSite",
+				"name": "Oljkina Kuhinjica",
+				"url": "https://oljka.rs/",
+				"inLanguage": "sr-RS",
+				"potentialAction": {
+					"@type": "SearchAction",
+					"target": "https://oljka.rs/?q={search_term_string}",
+					"query-input": "required name=search_term_string"
+				}
+			}
+		</script>
 	</head>
 	<body>
+		<noscript>Za najbolje iskustvo uključite JavaScript.</noscript>
 		<div id="root"></div>
 		<script type="module" src="/src/main.jsx"></script>
 	</body>
