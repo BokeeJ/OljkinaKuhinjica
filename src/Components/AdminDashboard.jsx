@@ -68,7 +68,7 @@ function AdminDashboard() {
                     placeholder="Pretraži recepte po naslovu..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg mb-6 shadow-sm"
+                    className="w-full p-3 border text-gray-800 border-gray-300 rounded-lg mb-6 shadow-sm"
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

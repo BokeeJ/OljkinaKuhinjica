@@ -19,7 +19,7 @@ function Pocetna() {
                 />
 
 
-                <div className="relative z-20 flex items-center justify-center h-full px-4 text-center">
+                <div className="relative z-20 flex items-center justify-center h-full px-4">
                     <h1 className="text-white text-2xl lg:text-4xl font-bold max-w-2xl leading-relaxed">
 
                         <TextGenerateEffectDemo />

@@ -36,8 +36,8 @@ function AdminLogin() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm mx-auto p-6 bg-white shadow rounded">
-            <h2 className="text-xl font-bold">Admin Login</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm mx-auto p-6 bg-gray-800 shadow rounded">
+            <h2 className="text-xl text-orange-300 font-bold">Admin Login</h2>
             <input
                 type="text"
                 placeholder="Username"

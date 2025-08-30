@@ -32,7 +32,7 @@ function Savet() {
                 whileInView='animate'
                 viewport={{
                     once: true,
-                }} className='lg:w-[50%] text-center p-5 m-2'>
+                }} className='lg:w-[50%]  p-5 m-2'>
                 <h2 className="text-3xl font-bold text-orange-300 mb-4">Zašto baš Oljkini recepti?</h2>
                 <p className="text-gray-100 text-lg leading-relaxed">
                     Oljka nije kuvar – ona je mama, supruga, prijatelj... koja sa mnogo ljubavi kuva za svoje najmilije.
@@ -40,7 +40,7 @@ function Savet() {
                     <br /><br />
                     Ako tražiš proverene domaće recepte, uz jednostavne korake i siguran rezultat, ovde si na pravom mestu.
                 </p>
-                <h2 className="text-3xl font-bold text-orange-300 mb-4">  “Ne moraš da budeš profesionalni kuvar da bi oduševio svoju porodicu.”</h2>
+                <h2 className="text-3xl font-bold text-orange-300 mb-4 m-2">Ne moraš da budeš profesionalni kuvar da bi oduševio svoju porodicu.</h2>
                 <p className=' text-gray-100 text-lg leading-relaxed'>
 
                     Moji recepti su tu da ti pokažu koliko lako možeš da spremiš nešto ukusno, domaće i provereno. Bez stresa, bez lutanja – samo ljubav, jednostavni koraci i miris koji okuplja porodicu za stolom.
