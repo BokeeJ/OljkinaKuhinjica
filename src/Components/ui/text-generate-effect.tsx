@@ -36,15 +36,15 @@ export const TextGenerateEffect = ({
   return (
     <div className={cn("font-bold", className)}>
       <div className="mt-4">
-        <div className="text-white text-2xl leading-snug tracking-wide">
+        <div className="text-white text-2xl leading-snug tracking-wide text-justify">
         <motion.div
   ref={scope}
-  className="flex flex-wrap justify-center gap-1 text-center"
+  className="flex flex-wrap justify-center gap-1 text-justify"
 >
   {wordsArray.map((word, idx) => (
     <motion.span
       key={word + idx}
-      className=" text-white opacity-0 whitespace-pre-wrap"
+      className=" text-white opacity-0 whitespace-pre-wrap text-justify"
       style={{
         filter: filter ? "blur(10px)" : "none",
       }}

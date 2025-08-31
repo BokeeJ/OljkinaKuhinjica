@@ -50,7 +50,7 @@ function PoslednjiRecepti() {
                 </h3>
                 <p className="flex gap-2 items-center text-xs text-gray-500 mt-1">
                     <IoTimeOutline size={16} color="orange" />
-                    {recipe.preparationTime || 'N/A'} min
+                    {recipe.preparationTime || 'N/A'}
                 </p>
                 <div className="mt-auto pt-2">
                     <button
