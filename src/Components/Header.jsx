@@ -1,5 +1,5 @@
 import React from 'react';
-import SearchInput from './SearchInput';
+
 import SocialNetwork from './SocialNetwork';
 import { useSearch } from "../Context/SearchContext";
 import QuickSearch from './QuickSearch';

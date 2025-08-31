@@ -79,13 +79,13 @@ function App() {
 
       {/* Padding zbog fixed headera */}
       <div className="pt-[72px]"> {/* prilagodi visini headera ako treba */}
-        <div className="relative z-30">
+        {/* <div className="relative z-30">
           <SearchResults
             onClearInput={() => setSearchResults([])}
             isMobile={false}
             className="flex justify-center items-center flex-col bg-orange-300 transition-all absolute top-10 left-0 w-full"
           />
-        </div>
+        </div> */}
 
         {/* Glavni sadržaj */}
         <AnimatePresence mode="wait">
