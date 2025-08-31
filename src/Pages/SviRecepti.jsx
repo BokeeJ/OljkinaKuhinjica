@@ -186,7 +186,7 @@ function SviRecepti() {
                     >
                         <Link
                             to={`/recept/${r._id}`}
-                            className="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] hover:bg-emerald-600"
+
                         >
                             <div>
                                 {r?.coverImage?.url && (
