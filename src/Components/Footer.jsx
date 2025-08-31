@@ -129,7 +129,7 @@ function Footer() {
                         <p>© {year} Oljkina Kuhinjica — sva prava zadržana.</p>
                         <div className="flex items-center gap-4">
                             <h6 className='text-[13px]'>
-                                <span className='text-[13px] text-orange-300'>©Oljkina Kuhinjica Designed by </span><a href="https://www.instagram.com/bojan_dsgn/" target="_blank" rel="noreferrer" className='text-orange-100 hover:underline'>BojanDsgn.</a>
+                                <span className='text-[13px] text-orange-300'>Designed by </span><a href="https://www.instagram.com/bojan_dsgn/" target="_blank" rel="noreferrer" className='text-orange-100 hover:underline'>BojanDsgn.</a>
                             </h6>
                         </div>
                     </div>

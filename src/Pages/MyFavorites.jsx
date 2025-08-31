@@ -90,29 +90,31 @@ function MyFavorites() {
                         key={recipe._id}
                         className="bg-white rounded-xl shadow hover:shadow-lg flex flex-col justify-between overflow-hidden hover:-translate-y-1 transition transform"
                     >
-                        <div>
-                            {recipe.coverImage?.url && (
-                                <img
-                                    src={recipe.coverImage.url}
-                                    alt={recipe.title}
-                                    className="w-full h-32 sm:h-36 object-cover"
-                                />
-                            )}
-                            <div className="p-2">
-                                <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{recipe.title}</h2>
-                                <p className="text-gray-600 mt-1 text-xs line-clamp-2">{recipe.description}</p>
-                                <span className="bg-emerald-100 text-emerald-600 rounded-full px-2 py-1 text-[10px] mt-1 inline-block">
-                                    {recipe.category}
-                                </span>
+                        <a
+                            href={`/recept/${recipe._id}`}
+                            className="bg-emerald-500 text-white rounded-full px-2 py-1 text-[10px] hover:bg-emerald-600"
+                        >
+                            <div>
+                                {recipe.coverImage?.url && (
+                                    <img
+                                        src={recipe.coverImage.url}
+                                        alt={recipe.title}
+                                        className="w-full h-32 sm:h-36 object-cover"
+                                    />
+                                )}
+                                <div className="p-2">
+                                    <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{recipe.title}</h2>
+                                    <p className="text-gray-600 mt-1 text-xs line-clamp-2">{recipe.description}</p>
+                                    <span className="bg-emerald-100 text-emerald-600 rounded-full px-2 py-1 text-[10px] mt-1 inline-block">
+                                        {recipe.category}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                         <div className="p-2 flex justify-end">
-                            <a
-                                href={`/recept/${recipe._id}`}
-                                className="bg-emerald-500 text-white rounded-full px-2 py-1 text-[10px] hover:bg-emerald-600"
-                            >
-                                detalji →
-                            </a>
+
+
+
                         </div>
                     </div>
                 ))}
