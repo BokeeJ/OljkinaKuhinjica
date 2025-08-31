@@ -184,24 +184,29 @@ function SviRecepti() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.3 }}
                     >
-                        <div>
-                            {r?.coverImage?.url && (
-                                <img
-                                    src={cdn(r.coverImage.url, 480)}
-                                    alt={r.title}
-                                    className="w-full h-28 object-cover"
-                                    loading="lazy"
-                                />
-                            )}
-                            <div className="p-2">
-                                <h2 className="text-xs font-bold text-gray-800 line-clamp-1">
-                                    {r.title}
-                                </h2>
-                                {r.preparationTime && (
-                                    <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime}</p>
+                        <Link
+                            to={`/recept/${r._id}`}
+                            className="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] hover:bg-emerald-600"
+                        >
+                            <div>
+                                {r?.coverImage?.url && (
+                                    <img
+                                        src={cdn(r.coverImage.url, 480)}
+                                        alt={r.title}
+                                        className="w-full h-28 object-cover"
+                                        loading="lazy"
+                                    />
                                 )}
+                                <div className="p-2">
+                                    <h2 className="text-xs font-bold text-gray-800 line-clamp-1">
+                                        {r.title}
+                                    </h2>
+                                    {r.preparationTime && (
+                                        <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime}</p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">
                             <p className="text-gray-400 text-[8px]">
                                 {r.createdAt ? new Date(r.createdAt).toLocaleString("sr-RS") : ""}
@@ -227,73 +232,73 @@ function SviRecepti() {
                                 >
                                     <Star className="h-3 w-3" />
                                 </button>
-                                <Link
-                                    to={`/recept/${r._id}`}
-                                    className="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] hover:bg-emerald-600"
-                                >
-                                    vidi →
-                                </Link>
+
+
                             </div>
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            {(items || []).length === 0 && (
-                <div className="text-center mt-6 text-gray-600">
-                    Nema rezultata za: <strong>{search}</strong>
-                </div>
-            )}
+            {
+                (items || []).length === 0 && (
+                    <div className="text-center mt-6 text-gray-600">
+                        Nema rezultata za: <strong>{search}</strong>
+                    </div>
+                )
+            }
 
             {/* PAGINACIJA (server-side) */}
-            {totalPages > 1 && (
-                <div className="w-full max-w-7xl mt-8 px-2">
-                    <div className="flex flex-wrap justify-center items-center gap-1">
-                        <button
-                            onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                            disabled={currentPage === 1}
-                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
-                                }`}
-                            aria-label="Prethodna strana"
-                        >
-                            ←
-                        </button>
+            {
+                totalPages > 1 && (
+                    <div className="w-full max-w-7xl mt-8 px-2">
+                        <div className="flex flex-wrap justify-center items-center gap-1">
+                            <button
+                                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                                disabled={currentPage === 1}
+                                className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                                    }`}
+                                aria-label="Prethodna strana"
+                            >
+                                ←
+                            </button>
 
-                        {makePageList(totalPages, currentPage, 9).map((item, idx) =>
-                            item === "…" ? (
-                                <span key={`dots-${idx}`} className="px-2 py-1 text-[10px] text-gray-500 select-none">…</span>
-                            ) : (
-                                <button
-                                    key={item}
-                                    onClick={() => handlePageChange(item)}
-                                    className={`px-2 py-1 rounded-full text-[10px] ${currentPage === item
-                                        ? "bg-emerald-500 text-white"
-                                        : "bg-gray-300 text-gray-600 hover:bg-gray-400"
-                                        }`}
-                                    aria-current={currentPage === item ? "page" : undefined}
-                                >
-                                    {item}
-                                </button>
-                            )
-                        )}
+                            {makePageList(totalPages, currentPage, 9).map((item, idx) =>
+                                item === "…" ? (
+                                    <span key={`dots-${idx}`} className="px-2 py-1 text-[10px] text-gray-500 select-none">…</span>
+                                ) : (
+                                    <button
+                                        key={item}
+                                        onClick={() => handlePageChange(item)}
+                                        className={`px-2 py-1 rounded-full text-[10px] ${currentPage === item
+                                            ? "bg-emerald-500 text-white"
+                                            : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                                            }`}
+                                        aria-current={currentPage === item ? "page" : undefined}
+                                    >
+                                        {item}
+                                    </button>
+                                )
+                            )}
 
-                        <button
-                            onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
-                                }`}
-                            aria-label="Sledeća strana"
-                        >
-                            →
-                        </button>
+                            <button
+                                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                                    }`}
+                                aria-label="Sledeća strana"
+                            >
+                                →
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 
