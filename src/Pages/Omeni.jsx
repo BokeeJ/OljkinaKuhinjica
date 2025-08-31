@@ -50,7 +50,7 @@ function OMeni() {
                             transition={{ type: "spring", stiffness: 120, damping: 12 }}
                         >
                             <img
-                                src="/kuhinja.webp"
+                                src="/olivera2.webp"
                                 alt="Kuhinja i spremanje hrane"
                                 loading="lazy"
                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"

@@ -17,13 +17,13 @@ function Savet() {
         }
     }
     return (
-        <div className='lg:flex flex-col lg:flex-row lg:p-5'>
+        <div className='lg:flex flex-col lg:flex-row lg:p-5 justify-center'>
             <div>
                 <img
-                    src="/oljka12.webp"
-                    alt="Timski rad"
+                    src="/Olivera.webp"
+                    alt="OliveraSmiljanic"
                     loading='lazy'
-                    className='h-[80%] w-full  p-2 rounded-4xl object-cover'
+                    className='h-[500px] w-full  p-2 rounded-4xl object-cover'
                 />
             </div>
             <motion.div

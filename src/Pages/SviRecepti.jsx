@@ -148,7 +148,7 @@ function SviRecepti() {
                     placeholder="Pretraži recepte..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full sm:max-w-[360px] mx-auto block p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/70"
+                    className="w-full sm:max-w-[360px] mx-auto block p-3 rounded-xl border text-gray-600 border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white/70"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                     Prikazujem {(items || []).length} od {total} rezultata
@@ -211,8 +211,8 @@ function SviRecepti() {
                                     onClick={() => handleLike(r._id)}
                                     disabled={likedSet.has(r._id)}
                                     className={`rounded-full px-2 py-0.5 text-[9px] ${likedSet.has(r._id)
-                                            ? "bg-gray-400 text-white cursor-not-allowed"
-                                            : "bg-emerald-500 text-white hover:bg-emerald-600"
+                                        ? "bg-gray-400 text-white cursor-not-allowed"
+                                        : "bg-emerald-500 text-white hover:bg-emerald-600"
                                         }`}
                                 >
                                     👍 ({r.likes || 0})
@@ -220,8 +220,8 @@ function SviRecepti() {
                                 <button
                                     onClick={() => handleFavorite(r._id)}
                                     className={`rounded-full p-1 flex items-center justify-center ${favSet.has(r._id)
-                                            ? "bg-emerald-600 text-white"
-                                            : "bg-gray-300 text-gray-600 hover:bg-emerald-100"
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-gray-300 text-gray-600 hover:bg-emerald-100"
                                         }`}
                                     aria-label="Sačuvaj u omiljene"
                                 >
@@ -253,8 +253,8 @@ function SviRecepti() {
                             onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                             disabled={currentPage === 1}
                             className={`px-2 py-1 rounded-full text-[10px] ${currentPage === 1
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
                                 }`}
                             aria-label="Prethodna strana"
                         >
@@ -269,8 +269,8 @@ function SviRecepti() {
                                     key={item}
                                     onClick={() => handlePageChange(item)}
                                     className={`px-2 py-1 rounded-full text-[10px] ${currentPage === item
-                                            ? "bg-emerald-500 text-white"
-                                            : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                                        ? "bg-emerald-500 text-white"
+                                        : "bg-gray-300 text-gray-600 hover:bg-gray-400"
                                         }`}
                                     aria-current={currentPage === item ? "page" : undefined}
                                 >
@@ -283,8 +283,8 @@ function SviRecepti() {
                             onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                             disabled={currentPage === totalPages}
                             className={`px-2 py-1 rounded-full text-[10px] ${currentPage === totalPages
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gray-300 text-gray-700 hover:bg-gray-400"
                                 }`}
                             aria-label="Sledeća strana"
                         >
