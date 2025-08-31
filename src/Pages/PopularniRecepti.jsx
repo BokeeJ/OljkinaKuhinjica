@@ -65,19 +65,24 @@ function PopularniRecepti() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.3 }}
                     >
-                        <div>
-                            {r.coverImage?.url && (
-                                <img
-                                    src={r.coverImage.url}
-                                    alt={r.title}
-                                    className="w-full h-32 sm:h-40 object-cover"
-                                />
-                            )}
-                            <div className="p-2">
-                                <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
-                                <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
+                        <Link
+                            to={`/recept/${r._id}`}
+
+                        >
+                            <div>
+                                {r.coverImage?.url && (
+                                    <img
+                                        src={r.coverImage.url}
+                                        alt={r.title}
+                                        className="w-full h-32 sm:h-40 object-cover"
+                                    />
+                                )}
+                                <div className="p-2">
+                                    <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
+                                    <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">
                             <p className="text-gray-400 text-[10px]">{new Date(r.createdAt).toLocaleString("sr-RS")}</p>
                             <div className="flex flex-wrap items-center gap-2">
@@ -86,12 +91,8 @@ function PopularniRecepti() {
                                     <span className="text-[10px]">{r.likes || 0}</span>
                                     {r.likes >= 10 && <span className="text-yellow-500 text-xs">🏆</span>}
                                 </div>
-                                <Link
-                                    to={`/recept/${r._id}`}
-                                    className="bg-emerald-500 text-white rounded-full px-2 py-1 text-[10px] hover:bg-emerald-600"
-                                >
-                                    Detalji →
-                                </Link>
+
+
                             </div>
                         </div>
                     </motion.div>
