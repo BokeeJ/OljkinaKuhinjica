@@ -18,7 +18,7 @@ const item = (rm) => ({
     show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } }
 });
 
-function OMeni() {
+export default function OMeni() {
     const reduceMotion = useReducedMotion();
 
     return (
@@ -26,7 +26,7 @@ function OMeni() {
             aria-labelledby="o-meni-naslov"
             className="relative mx-auto my-16 max-w-6xl px-4"
         >
-            {/* Dekor: blur “blobs” u pozadini */}
+            {/* Dekor: blur blobs u pozadini */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
                 <div className="absolute -top-10 -left-10 h-52 w-52 rounded-full bg-orange-400/30 blur-3xl" />
                 <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
@@ -41,10 +41,11 @@ function OMeni() {
             >
                 {/* gradient border */}
                 <div className="rounded-2xl bg-zinc-900/60">
-                    <div className="grid grid-cols-1 items-stretch gap-6 p-6 md:grid-cols-2 md:p-8 lg:p-10">
-                        {/* Levo: slika sa blagim tilt efektom */}
+                    <div className="grid items-stretch grid-cols-1 gap-6 p-6 md:grid-cols-12 md:gap-8 md:p-8 lg:p-10 md:min-h-[560px] lg:min-h-[620px]">
+                        {/* Levo: slika — full height na ≥ md */}
                         <motion.figure
-                            className="group relative aspect-[4/3] overflow-hidden rounded-2xl"
+                            className="group relative overflow-hidden rounded-2xl z-0
+                         aspect-[4/3] md:aspect-auto md:h-full md:self-stretch md:col-span-5"
                             variants={item(reduceMotion)}
                             whileHover={reduceMotion ? {} : { rotateX: 2, rotateY: -2, scale: 1.01 }}
                             transition={{ type: "spring", stiffness: 120, damping: 12 }}
@@ -55,14 +56,13 @@ function OMeni() {
                                 loading="lazy"
                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                             />
-                            {/* blag overlay i caption */}
                             <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 text-xs text-white/90">
                                 Zavirite u moju kuhinju — mesto gde nastaju recepti.
                             </figcaption>
                         </motion.figure>
 
                         {/* Desno: sadržaj */}
-                        <div className="flex flex-col">
+                        <div className="md:col-span-7 flex flex-col">
                             <motion.header variants={item(reduceMotion)} className="mb-3">
                                 <h1
                                     id="o-meni-naslov"
@@ -156,5 +156,3 @@ function OMeni() {
         </section>
     );
 }
-
-export default OMeni;
