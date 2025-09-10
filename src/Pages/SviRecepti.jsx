@@ -60,25 +60,23 @@ function SviRecepti() {
     const category = sp.get("category") || "";
     const subcategory = sp.get("subcategory") || "";
 
-    // Search input (debounce) — UI state, ali se "commituje" u URL posle 300ms
+    // Search input (debounce) — UI state, commit u URL posle 300ms
     const [searchInput, setSearchInput] = useState(q);
     useEffect(() => {
-        setSearchInput(q); // kad se URL promeni spolja, syncuj input
+        setSearchInput(q); // sync kad se URL promeni
     }, [q]);
 
-    // ✅ FIX: resetuj page=1 SAMO ako se pretraga zaista promenila
+    // ✅ Debounce: resetuj page=1 SAMO ako se q zaista promenio
     useEffect(() => {
         const t = setTimeout(() => {
             const currentQ = (sp.get("q") || "").trim();
             const nextQ = (searchInput || "").trim();
-
-            // Ako je isto kao u URL-u, ne diramo ništa (ne resetujemo page)
-            if (nextQ === currentQ) return;
+            if (nextQ === currentQ) return; // ništa ne menjaj
 
             const copy = new URLSearchParams(sp);
             if (nextQ) copy.set("q", nextQ);
             else copy.delete("q");
-            copy.set("page", "1"); // reset samo kad se q promeni
+            copy.set("page", "1"); // reset samo kad je q stvarno promenjen
             setSp(copy, { replace: false });
         }, 300);
         return () => clearTimeout(t);
@@ -160,22 +158,34 @@ function SviRecepti() {
         localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
 
-    // Callback iz RecipeFilter-a
+    // ✅ Callback iz RecipeFilter-a — reset page samo kad su vrednosti stvarno promenjene
     const handleSubCategorySelect = (cat, sub) => {
+        const prevCat = sp.get("category") || "";
+        const prevSub = sp.get("subcategory") || "";
+        const nextCat = cat || "";
+        const nextSub = sub || "";
+
+        // Ako nema realne promene — ne diramo URL (ne resetujemo page)
+        if (prevCat === nextCat && prevSub === nextSub) return;
+
         const copy = new URLSearchParams(sp);
-        if (cat) copy.set("category", cat);
+        if (nextCat) copy.set("category", nextCat);
         else copy.delete("category");
-        if (sub) copy.set("subcategory", sub);
+        if (nextSub) copy.set("subcategory", nextSub);
         else copy.delete("subcategory");
-        copy.set("page", "1"); // reset na 1 kad se menja filter
+
+        // Reset na 1 SAMO jer je filter zaista promenjen
+        copy.set("page", "1");
         setSp(copy, { replace: false });
     };
 
     const resetFilters = () => {
+        const hadAny = sp.has("category") || sp.has("subcategory");
         const copy = new URLSearchParams(sp);
         copy.delete("category");
         copy.delete("subcategory");
-        copy.set("page", "1");
+        // reset samo ako je nešto stvarno uklonjeno
+        if (hadAny) copy.set("page", "1");
         setSp(copy, { replace: false });
     };
 
@@ -232,7 +242,7 @@ function SviRecepti() {
                         transition={{ duration: 0.3 }}
                     >
                         <Link
-                            to={`/recept/${r._id}${location.search}`} // zadržava page & filtere
+                            to={`/recept/${r._id}${location.search}`} // zadrži page & filtere
                             state={{ from: location.pathname + location.search }}
                         >
                             <div>
