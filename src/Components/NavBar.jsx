@@ -8,6 +8,7 @@ import SearchInput from './SearchInput';
 import { useSearch } from "../Context/SearchContext";
 import SearchResults from './SearchResults';
 import { SlClose } from "react-icons/sl";
+
 function NavBar() {
     const [isOpen, setIsOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
@@ -24,17 +25,18 @@ function NavBar() {
         setIsOpen(false);
     };
 
+    // Zatvori overlays kad se promeni ruta
     useEffect(() => {
         setShowSearch(false);
-        console.log(isOpen);
+        setIsOpen(false);
     }, [location]);
 
     return (
         <div className="w-full lg:h-[200px] flex flex-col justify-center items-center relative text-white z-50">
-            {/* Favorites bar */}
+            {/* Favorites bar (desktop) */}
             <div
                 className={`w-full h-[300px] lg:block hidden top-0 left-0 absolute backdrop-blur-xl transition-transform duration-300 ease-in-out flex justify-between ${showSearch ? 'translate-y-0 lg:translate-y-[-100%]' : 'translate-y-[-100%]'}`}>
-                <Link onClick={() => setShowSearch(false)} to={'/favorites'}>
+                <Link onClick={() => setShowSearch(false)} to="/favorites">
                     <div className='flex p-5 items-center gap-2'>
                         <CiHeart size={28} />
                         <h5>Favorites</h5>
@@ -53,9 +55,9 @@ function NavBar() {
             <div className="flex lg:justify-center justify-between items-center lg:w-[60%] md:w-[70%] w-[80%] py-4">
                 <nav>
                     <ul className="lg:flex gap-6 m-5 hidden text-lg">
-                        <NavLink to='/' className="hover:text-orange-400 transition">Naslovna</NavLink>
-                        <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
-
+                        <NavLink to="/" className="hover:text-orange-400 transition">Naslovna</NavLink>
+                        {/* ✅ promenjeno: /recepti umesto /sviRecepti */}
+                        <NavLink to="/recepti" className="hover:text-orange-400 transition">Recepti</NavLink>
                     </ul>
                     <RxHamburgerMenu
                         onClick={toggleMenu}
@@ -69,9 +71,9 @@ function NavBar() {
 
                 {/* Logo */}
                 <div>
-                    <Link to={'/'}>
+                    <Link to="/">
                         <img
-                            className="lg:w-[200px] lg:h-[200px] w-[140px] h-[140px] "
+                            className="lg:w-[200px] lg:h-[200px] w-[140px] h-[140px]"
                             src="/logoOljka.png"
                             alt="logo"
                         />
@@ -98,15 +100,18 @@ function NavBar() {
             {/* Mobile menu */}
             <div
                 className={`absolute top-0 backdrop-blur-2xl w-full flex flex-col justify-center p-5 transform transition-all duration-500 ease-in-out z-40 ${isOpen ? 'translate-x-0 lg:translate-x-[-100%]' : 'translate-x-[-100%]'}`}>
-                <SlClose onClick={() => setIsOpen(false)} size={30} className='right-10 top-10 absolute hover:text-orange-300 cursor-pointer' />
+                <SlClose
+                    onClick={() => setIsOpen(false)}
+                    size={30}
+                    className='right-10 top-10 absolute hover:text-orange-300 cursor-pointer'
+                />
                 <ul className="gap-5 m-2 flex flex-col text-lg">
-                    <NavLink to="/saradnja" className="hover:text-orange-400 transition">Naslovna</NavLink>
-                    <NavLink to="/sviRecepti" className="hover:text-orange-400 transition">Recepti</NavLink>
-                    <NavLink to="/omeni" className="hover:text-orange-400 transition">O meni</NavLink>
-                    <NavLink to="/kontakt" className="hover:text-orange-400 transition">Kontakt</NavLink>
-
+                    <NavLink to="/" onClick={() => setIsOpen(false)} className="hover:text-orange-400 transition">Naslovna</NavLink>
+                    {/* ✅ promenjeno i u mobilnom meniju */}
+                    <NavLink to="/recepti" onClick={() => setIsOpen(false)} className="hover:text-orange-400 transition">Recepti</NavLink>
+                    <NavLink to="/omeni" onClick={() => setIsOpen(false)} className="hover:text-orange-400 transition">O meni</NavLink>
+                    <NavLink to="/kontakt" onClick={() => setIsOpen(false)} className="hover:text-orange-400 transition">Kontakt</NavLink>
                 </ul>
-
             </div>
 
             {/* Mobile search */}
@@ -138,9 +143,6 @@ function NavBar() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-
-
-
                     </div>
 
                     {/* Donjih 50% – Rezultati */}

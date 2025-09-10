@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import axios from '../api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
 
 // slug -> label (tačno kao u Mongoose enumu)
 const SUBCATEGORY_MAP = {
@@ -83,24 +82,29 @@ function IzmeniRecept() {
     // Učitavanje postojećeg recepta
     useEffect(() => {
         (async () => {
-            const res = await axios.get(`${API_BASE_URL}/api/recipes/${id}`);
-            const data = res.data;
+            try {
+                const res = await axios.get(`/api/recipes/${id}`);
+                const data = res.data;
 
-            const subLabel = data.subcategory || '';
-            const subSlug = LABEL_TO_SLUG[subLabel] || '';
+                const subLabel = data.subcategory || '';
+                const subSlug = LABEL_TO_SLUG[subLabel] || '';
 
-            setForm({
-                title: data.title || '',
-                category: (data.category || 'slano').toLowerCase(),
-                subcategory: subSlug,
-                preparationTime: data.preparationTime || '',
-                ingredients: (data.ingredients || []).join('\n'),
-                instructions: data.instructions || '',
-                note: data.note || '',
-            });
-            setExistingCover(data.coverImage || null);
-            setExistingGallery(data.gallery || []);
-            setCoverPreview(''); // reset potencijalnog starog previewa
+                setForm({
+                    title: data.title || '',
+                    category: (data.category || 'slano').toLowerCase(),
+                    subcategory: subSlug,
+                    preparationTime: data.preparationTime || '',
+                    ingredients: (data.ingredients || []).join('\n'),
+                    instructions: data.instructions || '',
+                    note: data.note || '',
+                });
+                setExistingCover(data.coverImage || null);
+                setExistingGallery(data.gallery || []);
+                setCoverPreview('');
+            } catch (e) {
+                console.error('Greška pri učitavanju recepta:', e);
+                alert('Ne mogu da učitam recept.');
+            }
         })();
     }, [id]);
 
@@ -164,16 +168,8 @@ function IzmeniRecept() {
         (gallery || []).forEach((g) => data.append('gallery', g));
 
         try {
-            const token =
-                localStorage.getItem('admin_token') || localStorage.getItem('token');
-            if (!token) {
-                alert('Token nije pronađen. Prijavi se ponovo.');
-                return;
-            }
-
-            await axios.put(`${API_BASE_URL}/api/recipes/${id}`, data, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            // Interceptor već šalje Authorization i baseURL
+            await axios.put(`/api/recipes/${id}`, data);
 
             alert('Recept uspešno izmenjen!');
             navigate('/admin');

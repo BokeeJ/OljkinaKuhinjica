@@ -1,11 +1,21 @@
 // src/Components/PrivateRoute.jsx
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
-const PrivateRoute = () => {
-    const isLoggedIn = !!localStorage.getItem("admin_token");
+export default function PrivateRoute() {
+    const location = useLocation();
+    const token = localStorage.getItem("admin_token");
 
-    return isLoggedIn ? <Outlet /> : <Navigate to="/login" />;
-};
+    if (!token) {
+        // zapamti gde je hteo da ide (da ga vrati tamo posle logina)
+        return (
+            <Navigate
+                to="/admin/login"
+                replace
+                state={{ from: location.pathname + location.search }}
+            />
+        );
+    }
 
-export default PrivateRoute;
+    return <Outlet />;
+}

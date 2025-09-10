@@ -49,14 +49,16 @@ function Footer() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
                         {/* Brand */}
                         <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                            <img
-                                src="/logoOljka.png"
-                                alt="Oljka — logo sajta Oljkina Kuhinjica"
-                                loading="lazy"
-                                width={220}
-                                height={220}
-                                className="w-40 h-40 object-contain drop-shadow-lg"
-                            />
+                            <Link to={'/'}>
+                                <img
+                                    src="/logoOljka.png"
+                                    alt="Oljka — logo sajta Oljkina Kuhinjica"
+                                    loading="lazy"
+                                    width={220}
+                                    height={220}
+                                    className="w-40 h-40 object-contain drop-shadow-lg"
+                                />
+                            </Link>
                             <p className="mt-4 text-sm text-gray-400 max-w-xs">
                                 Domaći recepti, provereni saveti i mnogo ljubavi prema kuvanju. Uživaj u ukusima!
                             </p>

@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import axios from "../api";
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
-import { API_BASE_URL } from '../config';
 
 function ReceptDetalji() {
     const { id } = useParams();
+    const location = useLocation();
+    const navigate = useNavigate();
+
     const [recipe, setRecipe] = useState(null);
     const [gallery, setGallery] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
@@ -23,14 +25,18 @@ function ReceptDetalji() {
 
     useEffect(() => {
         (async () => {
-            const res = await axios.get(`${API_BASE_URL}/api/recipes/${id}`);
-            setRecipe(res.data);
+            try {
+                const res = await axios.get(`/api/recipes/${id}`);
+                setRecipe(res.data);
 
-            const slides = (res.data.gallery || []).map((item) => ({
-                src: item.url,
-                type: item.type === 'video' ? 'video' : 'image',
-            }));
-            setGallery(slides);
+                const slides = (res.data.gallery || []).map((item) => ({
+                    src: item.url,
+                    type: item.type === 'video' ? 'video' : 'image',
+                }));
+                setGallery(slides);
+            } catch (e) {
+                console.error("Greška pri učitavanju recepta:", e);
+            }
         })();
     }, [id]);
 
@@ -40,7 +46,7 @@ function ReceptDetalji() {
         return t.trim();
     }, [recipe]);
 
-    // Pametno odvajanje POSLOVICE od napomene (poslednja linija sa “…” ili prefiksom Poslovica:/Citat:)
+    // Pametno odvajanje POSLOVICE od napomene
     const { noteText, proverb } = useMemo(() => {
         const raw = String(recipe?.note || '').trim();
         if (!raw) return { noteText: '', proverb: '' };
@@ -67,6 +73,22 @@ function ReceptDetalji() {
         return { noteText: lines.join('\n'), proverb: '' };
     }, [recipe?.note]);
 
+    // Fallback target za povratak na listu sa istim query-jem (ako postoji)
+    const fallbackFrom =
+        location.state?.from ||
+        (location.search ? `/recepti${location.search}` : '/recepti?page=1');
+
+    // Back handler:
+    // - ako je došao sa liste (ima history), navigate(-1)
+    // - ako je otvorio direktno, idi na fallbackFrom
+    const handleBack = () => {
+        if (location.key !== 'default') {
+            navigate(-1);
+        } else {
+            navigate(fallbackFrom, { replace: true });
+        }
+    };
+
     if (!recipe) {
         return (
             <div className="min-h-screen grid place-items-center text-gray-600">
@@ -79,7 +101,7 @@ function ReceptDetalji() {
         <>
             <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 py-6 sm:py-10 px-3 sm:px-6 flex justify-center">
                 <article className="w-full max-w-4xl bg-white/90 backdrop-blur rounded-2xl shadow-xl overflow-hidden">
-                    {/* Cover sa overlay naslovom */}
+                    {/* Cover sa overlay naslovom + back dugme u uglu */}
                     {recipe.coverImage?.url && (
                         <div className="relative">
                             <img
@@ -91,6 +113,14 @@ function ReceptDetalji() {
                             <h1 className="absolute left-4 right-4 bottom-4 text-white text-2xl sm:text-3xl font-extrabold drop-shadow">
                                 {recipe.title}
                             </h1>
+
+                            <button
+                                onClick={handleBack}
+                                className="absolute top-3 left-3 bg-white/90 hover:bg-white text-gray-800 font-semibold rounded-full px-3 py-1.5 text-sm shadow"
+                                aria-label="Nazad"
+                            >
+                                ← Nazad
+                            </button>
                         </div>
                     )}
 
@@ -123,9 +153,7 @@ function ReceptDetalji() {
                     <div className="px-4 sm:px-6 pb-6 pt-4 text-gray-800">
                         {/* Sastojci */}
                         <section className="mb-6">
-                            <h2 className="text-lg font-bold text-gray-900 mb-2">
-                                Sastojci
-                            </h2>
+                            <h2 className="text-lg font-bold text-gray-900 mb-2">Sastojci</h2>
                             <ul className="list-disc pl-5 space-y-1 text-[15px]">
                                 {(recipe.ingredients || []).map((s, i) => (
                                     <li key={i}>{s}</li>
@@ -135,9 +163,7 @@ function ReceptDetalji() {
 
                         {/* Uputstvo */}
                         <section className="mb-6">
-                            <h2 className="text-lg font-bold text-gray-900 mb-2">
-                                Uputstvo za pripremu
-                            </h2>
+                            <h2 className="text-lg font-bold text-gray-900 mb-2">Uputstvo za pripremu</h2>
                             <ol className="list-decimal pl-5 space-y-1 text-[15px] leading-relaxed">
                                 {(recipe.instructions || '')
                                     .split('\n')
@@ -154,9 +180,7 @@ function ReceptDetalji() {
                             <section className="mb-6">
                                 {noteText && (
                                     <>
-                                        <h2 className="text-lg font-bold text-gray-900 mb-2">
-                                            Napomena
-                                        </h2>
+                                        <h2 className="text-lg font-bold text-gray-900 mb-2">Napomena</h2>
                                         <p className="whitespace-pre-line text-[15px] text-gray-700 bg-amber-50/60 border border-amber-200 rounded-xl p-3">
                                             {noteText}
                                         </p>
@@ -180,9 +204,7 @@ function ReceptDetalji() {
                         {/* Galerija */}
                         {gallery.length > 0 && (
                             <section className="mt-6">
-                                <h2 className="text-lg font-bold text-gray-900 mb-2">
-                                    Galerija
-                                </h2>
+                                <h2 className="text-lg font-bold text-gray-900 mb-2">Galerija</h2>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {gallery.map((item, idx) =>
                                         item.type === 'video' ? (
@@ -211,14 +233,14 @@ function ReceptDetalji() {
                             </section>
                         )}
 
-                        {/* CTA nazad */}
+                        {/* CTA nazad (dugme sa istim ponašanjem) */}
                         <div className="pt-6">
-                            <Link
-                                to="/SviRecepti"
+                            <button
+                                onClick={handleBack}
                                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full px-4 py-2 text-sm"
                             >
                                 ← Nazad na listu
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </article>

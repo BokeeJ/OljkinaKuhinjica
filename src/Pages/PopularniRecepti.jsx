@@ -1,14 +1,23 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "../api";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
-import { API_BASE_URL } from '../config.js';
 
 function PopularniRecepti() {
     const [recipes, setRecipes] = useState([]);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState("");
     const [itemsToShow, setItemsToShow] = useState(5); // default 5
+    const [error, setError] = useState(null);
+
+    // Cloudinary on-the-fly optimizacija (ako je URL sa Cloudinary)
+    const cdn = (url, w = 0) => {
+        if (!url) return url;
+        const i = url.indexOf("/upload/");
+        if (i === -1) return url;
+        const trans = `f_auto,q_auto${w ? `,w_${w}` : ""}`;
+        return url.slice(0, i + 8) + trans + "/" + url.slice(i + 8);
+    };
 
     // ✅ Podešavanje broja recepata prema veličini ekrana
     useEffect(() => {
@@ -27,19 +36,28 @@ function PopularniRecepti() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/recipes/popular`);
-                setRecipes(res.data);
+                const res = await axios.get(`/api/recipes/popular`);
+                const arr = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+                setRecipes(arr);
             } catch (err) {
                 console.error("❌ Greška pri učitavanju popularnih recepata:", err);
-                alert("Greška pri učitavanju popularnih recepata.");
+                setError("Greška pri učitavanju popularnih recepata.");
             }
         };
         fetchData();
     }, []);
 
-    const filteredRecipes = recipes
-        .filter((r) => r.title.toLowerCase().includes(search.toLowerCase()))
-        .slice(0, itemsToShow); // ✨ Ovde se primenjuje limit
+    const filteredRecipes = useMemo(
+        () =>
+            (recipes || [])
+                .filter((r) => (r.title || "").toLowerCase().includes(search.toLowerCase()))
+                .slice(0, itemsToShow),
+        [recipes, search, itemsToShow]
+    );
+
+    if (error) {
+        return <div className="p-4 text-center text-red-600">{error}</div>;
+    }
 
     return (
         <div className="p-4 bg-gradient-to-b mt-5 min-h-screen">
@@ -65,34 +83,36 @@ function PopularniRecepti() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.3 }}
                     >
-                        <Link
-                            to={`/recept/${r._id}`}
-
-                        >
+                        <Link to={`/recept/${r._id}`}>
                             <div>
                                 {r.coverImage?.url && (
                                     <img
-                                        src={r.coverImage.url}
+                                        src={cdn(r.coverImage.url, 640)}
                                         alt={r.title}
                                         className="w-full h-32 sm:h-40 object-cover"
+                                        loading="lazy"
                                     />
                                 )}
                                 <div className="p-2">
-                                    <h2 className="text-sm font-bold text-gray-800 line-clamp-1">{r.title}</h2>
-                                    <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime} min</p>
+                                    <h2 className="text-sm font-bold text-gray-800 line-clamp-1">
+                                        {r.title}
+                                    </h2>
+                                    {r.preparationTime && (
+                                        <p className="text-[9px] mt-1 text-orange-400">⏱ {r.preparationTime}</p>
+                                    )}
                                 </div>
                             </div>
                         </Link>
                         <div className="p-2 flex justify-between items-center flex-wrap gap-1">
-                            <p className="text-gray-400 text-[10px]">{new Date(r.createdAt).toLocaleString("sr-RS")}</p>
+                            <p className="text-gray-400 text-[10px]">
+                                {r.createdAt ? new Date(r.createdAt).toLocaleString("sr-RS") : ""}
+                            </p>
                             <div className="flex flex-wrap items-center gap-2">
                                 <div className="flex items-center text-gray-500 gap-1">
                                     <Heart className={`h-3 w-3 ${r.likes > 0 ? "text-emerald-600" : ""}`} />
                                     <span className="text-[10px]">{r.likes || 0}</span>
                                     {r.likes >= 10 && <span className="text-yellow-500 text-xs">🏆</span>}
                                 </div>
-
-
                             </div>
                         </div>
                     </motion.div>

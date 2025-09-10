@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config.js';
+import axios from '../api'; // ⬅️ globalna axios instanca (baseURL + token)
 
 // slug -> label (tačno kao u Mongoose enumu)
 const SUBCATEGORY_MAP = {
@@ -120,20 +119,24 @@ function AddRecipe() {
         (form.gallery || []).forEach((file) => formData.append('gallery', file));
 
         try {
-            const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-            if (!token) {
-                alert('Token nije pronađen. Prijavi se ponovo.');
-                return;
-            }
-
-            const res = await axios.post(`${API_BASE_URL}/api/recipes`, formData, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            // Interceptor već šalje Authorization: Bearer <token> i baseURL
+            const res = await axios.post('/api/recipes', formData);
 
             alert('Recept dodat!');
-            console.log(res.data);
 
-            // reset
+            // Pokušaj da izvučeš ID novog recepta iz različitih mogućih oblika responsa
+            const newId =
+                res?.data?._id ||
+                res?.data?.id ||
+                res?.data?.recipe?._id ||
+                res?.data?.recipe?.id;
+
+            // Otvori pregled u NOVOM tabu da admin ostane na formi
+            if (newId) {
+                window.open(`/recept/${newId}`, '_blank', 'noopener');
+            }
+
+            // reset forme
             setForm({
                 title: '',
                 category: 'slano',

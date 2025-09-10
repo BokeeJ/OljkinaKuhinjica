@@ -1,35 +1,33 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
-
-axios.defaults.withCredentials = true;
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "../api";
 
 function AdminLogin() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        console.log('📤 Šaljem:', username, password);
 
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-                username,
-                password
-            });
-            localStorage.setItem('admin_token', res.data.token);
+            const res = await axios.post("/api/auth/login", { username, password });
 
+            const token = res.data?.token;
+            if (token) {
+                localStorage.setItem("admin_token", token);
+                // axios interceptor već će slati Authorization na sve naredne pozive
+            }
 
-            alert('Uspešan login ✅');
-            console.log("Navigiram na admin...");
-            navigate('/admin');
+            const redirectTo = location.state?.from || "/admin";
+            navigate(redirectTo, { replace: true });
+
         } catch (err) {
-            console.error('❌ Login greška:', err.response?.data || err.message);
-            alert('Login neuspešan. Proveri korisničko ime ili lozinku.');
+            console.error("❌ Login greška:", err.response?.data || err.message);
+            alert("Login neuspešan. Proveri korisničko ime ili lozinku.");
         } finally {
             setLoading(false);
         }
@@ -54,12 +52,8 @@ function AdminLogin() {
                 required
                 className="border p-2 rounded"
             />
-            <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-            >
-                {loading ? 'Prijavljivanje...' : 'Login'}
+            <button type="submit" disabled={loading} className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                {loading ? "Prijavljivanje..." : "Login"}
             </button>
         </form>
     );
