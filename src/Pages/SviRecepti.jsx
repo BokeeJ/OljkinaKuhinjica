@@ -66,12 +66,19 @@ function SviRecepti() {
         setSearchInput(q); // kad se URL promeni spolja, syncuj input
     }, [q]);
 
+    // ✅ FIX: resetuj page=1 SAMO ako se pretraga zaista promenila
     useEffect(() => {
         const t = setTimeout(() => {
+            const currentQ = (sp.get("q") || "").trim();
+            const nextQ = (searchInput || "").trim();
+
+            // Ako je isto kao u URL-u, ne diramo ništa (ne resetujemo page)
+            if (nextQ === currentQ) return;
+
             const copy = new URLSearchParams(sp);
-            if (searchInput.trim()) copy.set("q", searchInput.trim());
+            if (nextQ) copy.set("q", nextQ);
             else copy.delete("q");
-            copy.set("page", "1"); // resetuj na 1 kad se menja pretraga
+            copy.set("page", "1"); // reset samo kad se q promeni
             setSp(copy, { replace: false });
         }, 300);
         return () => clearTimeout(t);
