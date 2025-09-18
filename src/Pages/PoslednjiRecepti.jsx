@@ -131,7 +131,7 @@ export default function PoslednjiRecepti() {
                     </p>
                 </div>
                 <Link
-                    to="/SviRecepti"
+                    to="/recepti"
                     className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold rounded-full bg-orange-300 hover:bg-orange-400 text-white py-2 px-3 transition"
                 >
                     Vidi sve <FaArrowRight size={12} />

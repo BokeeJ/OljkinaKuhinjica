@@ -70,7 +70,7 @@ function Footer() {
                             <ul className="space-y-2 text-[15px]">
                                 <li>
                                     <Link
-                                        to="/SviRecepti"
+                                        to="/recepti"
                                         className="group inline-flex items-center gap-2 hover:text-orange-300 transition-colors"
                                     >
                                         <span>Svi recepti</span>

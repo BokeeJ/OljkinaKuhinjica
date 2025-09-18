@@ -137,7 +137,7 @@ export default function OMeni() {
                                 aria-label="Brzi linkovi"
                             >
                                 <Link
-                                    to="/sviRecepti"
+                                    to="/recepti"
                                     className="inline-flex items-center rounded-full bg-orange-300 px-4 py-2 text-sm font-medium text-white shadow hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
                                 >
                                     Pogledaj recepte
