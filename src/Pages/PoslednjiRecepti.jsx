@@ -152,7 +152,7 @@ export default function PoslednjiRecepti() {
                 {!loading && (
                     <div className="sm:hidden flex justify-center mt-4">
                         <Link
-                            to="/SviRecepti"
+                            to="/recepti"
                             className="inline-flex items-center gap-2 text-xs font-semibold rounded-full bg-orange-300 hover:bg-orange-400 text-white py-2 px-4 transition"
                         >
                             Vidi sve recepte <FaArrowRight size={12} />
