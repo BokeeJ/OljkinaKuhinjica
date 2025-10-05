@@ -1,41 +1,110 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 
-/** Konfiguracija kategorija */
-const CATS = {
-    slatko: ["Kolači", "Torte"],
-    slano: [
-        "Doručak",
-        "Ručak",
-        "Večera",
-        "Pica",
-        "Brza jela",
-        "Salate",
-        "Hladna jela",
-        "Užina",
-        "Supe i čorbe",
-        "Pecivo",
-    ],
-};
+/** ===================== KONFIG ===================== 
+ * SLANO:
+ *  - Dorucak/Vecera
+ *  - Predjela
+ *  - Rucak
+ *      • Supe i čorbe
+ *      • Kuvana jela
+ *      • Jela iz rerne
+ *      • Paste
+ *  - Hlebovi i peciva
+ *  - Posno
+ *  - Zimnica
+ * SLATKO: (za sada samo dve stavke – možeš proširiti kasnije)
+ */
+const SLANO_GROUPS = [
+    { section: "Dorucak/Vecera", items: ["Dorucak/Vecera"] },
+    { section: "Predjela", items: ["Predjela"] },
+    { section: "Rucak", items: ["Supe i čorbe", "Kuvana jela", "Jela iz rerne", "Paste"] },
+    { section: "Hlebovi i peciva", items: ["Hlebovi i peciva"] },
+    { section: "Posno", items: ["Posno"] },
+    { section: "Zimnica", items: ["Zimnica"] },
+];
 
-export default function RecipeFilter({ onSelect, onReset }) {
-    const [selected, setSelected] = useState({ cat: "", sub: "" });
+const SLATKO_LIST = ["Kolači", "Torte"]; // proširi po potrebi
+
+// za brzo prepoznavanje da li sub pripada Rucku
+const RUCKAK_SUBS = new Set(["Supe i čorbe", "Kuvana jela", "Jela iz rerne", "Paste"]);
+
+/* ================================================== */
+
+export default function RecipeFilter() {
+    const [sp, setSp] = useSearchParams();
+
+    // čitamo trenutne vrednosti iz URL-a da label prikazuje stanje
+    const category = (sp.get("category") || "").toLowerCase();
+    const section = sp.get("section") || "";
+    const subcategory = sp.get("subcategory") || "";
+
     const label =
-        selected.cat && selected.sub
-            ? `${cap(selected.cat)} • ${selected.sub}`
-            : selected.cat
-                ? `${cap(selected.cat)}`
+        category === "slano"
+            ? section && subcategory
+                ? `SLANO • ${section} • ${subcategory}`
+                : section
+                    ? `SLANO • ${section}`
+                    : "🧭 Izaberi (SLANO)"
+            : category === "slatko"
+                ? subcategory
+                    ? `SLATKO • ${subcategory}`
+                    : "🧭 Izaberi (SLATKO)"
                 : "🧭 Izaberi kategoriju";
 
-    const handlePick = (cat, sub) => {
-        setSelected({ cat, sub });
-        onSelect?.(cat, sub);
+    const handleReset = () => {
+        const next = new URLSearchParams(sp);
+        next.delete("category");
+        next.delete("section");
+        next.delete("subcategory");
+        next.set("page", "1");
+        setSp(next, { replace: true });
     };
 
-    const handleReset = () => {
-        setSelected({ cat: "", sub: "" });
-        onReset?.();
+    // univerzalni setter-i
+    const setCategory = (cat) => {
+        const next = new URLSearchParams(sp);
+        next.set("category", cat);
+        // reset grana
+        next.delete("section");
+        next.delete("subcategory");
+        next.set("page", "1");
+        setSp(next, { replace: true });
+    };
+
+    const setSection = (sec) => {
+        const next = new URLSearchParams(sp);
+        next.set("category", "slano");
+        next.set("section", sec);
+        next.delete("subcategory");
+        next.set("page", "1");
+        setSp(next, { replace: true });
+    };
+
+    // klik na “leaf”:
+    // - SLANO: ako je leaf iz Ručka → section=Rucak & subcategory=leaf
+    //          ako je leaf samostalan (npr. Predjela) → section=Predjela (i nema subcategory)
+    // - SLATKO: category=slatko & subcategory=leaf
+    const handlePick = (cat, leaf) => {
+        const next = new URLSearchParams(sp);
+        if (cat === "slano") {
+            next.set("category", "slano");
+            if (RUCKAK_SUBS.has(leaf)) {
+                next.set("section", "Rucak");
+                next.set("subcategory", leaf);
+            } else {
+                next.set("section", leaf);
+                next.delete("subcategory");
+            }
+        } else if (cat === "slatko") {
+            next.set("category", "slatko");
+            next.delete("section");
+            next.set("subcategory", leaf);
+        }
+        next.set("page", "1");
+        setSp(next, { replace: true });
     };
 
     return (
@@ -49,21 +118,32 @@ export default function RecipeFilter({ onSelect, onReset }) {
                 ✖ Reset
             </button>
 
-            {/* Desktop i Mobilni triggere dele selected label */}
-            <RecipeFilterDesktop label={label} onPick={handlePick} />
-            <RecipeFilterMobile label={label} onPick={handlePick} />
+            <RecipeFilterDesktop
+                label={label}
+                onPick={handlePick}
+                onSetCategory={setCategory}
+                onSetSection={setSection}
+            />
+
+            <RecipeFilterMobile
+                label={label}
+                onPick={handlePick}
+                onSetCategory={setCategory}
+            />
         </div>
     );
 }
 
 /* ========================= DESKTOP (hover/click mega-meni) ========================= */
-function RecipeFilterDesktop({ label, onPick }) {
+function RecipeFilterDesktop({ label, onPick, onSetCategory, onSetSection }) {
     const [open, setOpen] = useState(false);
-    const [path, setPath] = useState([]); // npr. ["slano"]
+    const [path, setPath] = useState([]); // npr. ["slano"] ili ["slatko"]
     const wrapRef = useRef(null);
     const closeTimer = useRef(null);
-    const rootCats = Object.keys(CATS);
     const reduceMotion = useReducedMotion();
+
+    // korenski tabovi
+    const rootCats = ["slano", "slatko"];
 
     // zatvaranje klikom van + ESC
     useEffect(() => {
@@ -102,11 +182,81 @@ function RecipeFilterDesktop({ label, onPick }) {
     const handleRootClick = (cat) => {
         if (!open) setOpen(true);
         setPath([cat]);
+        onSetCategory(cat); // odmah postavi category u URL-u
     };
-    const handleLeafClick = (cat, sub) => {
-        onPick?.(cat, sub);
+
+    const handleLeafClick = (cat, leaf) => {
+        // SLANO: ako klikneš "Rucak" kao sekciju, prvo samo setSection,
+        // a potom će se prikazati njegovi leaf-ovi (Supe, Kuvana, ...).
+        if (cat === "slano" && leaf === "Rucak") {
+            onSetSection("Rucak");
+            setPath(["slano"]); // ostani na slano panelu
+            return;
+        }
+        onPick?.(cat, leaf);
         setOpen(false);
         setPath([]);
+    };
+
+    // sadržaj za desni panel u zavisnosti od odabrane grane
+    const renderRightPanel = () => {
+        if (!path[0]) {
+            return <div className="px-2 py-4 text-sm text-zinc-500">Pređi mišem preko kategorije…</div>;
+        }
+
+        if (path[0] === "slano") {
+            return (
+                <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                        {SLANO_GROUPS.map((g) => (
+                            <div key={g.section} className="rounded-lg border bg-white p-2">
+                                <button
+                                    onClick={() =>
+                                        g.items.length > 1
+                                            ? handleLeafClick("slano", "Rucak") // otvori Rucak (setSection)
+                                            : handleLeafClick("slano", g.section)
+                                    }
+                                    className="w-full rounded-md px-2 py-1 text-left text-sm font-semibold hover:bg-emerald-50"
+                                >
+                                    {g.section}
+                                </button>
+                                {g.items.length > 1 && (
+                                    <div className="mt-1 grid gap-1">
+                                        {g.items.map((sub) => (
+                                            <button
+                                                key={sub}
+                                                onClick={() => handleLeafClick("slano", sub)}
+                                                className="rounded px-2 py-1 text-left text-sm hover:bg-emerald-50"
+                                            >
+                                                {sub}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        if (path[0] === "slatko") {
+            return (
+                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                    {SLATKO_LIST.map((sub) => (
+                        <button
+                            key={sub}
+                            onClick={() => handleLeafClick("slatko", sub)}
+                            className="rounded-lg px-3 py-2 text-left text-sm ring-1 ring-transparent transition hover:bg-emerald-50 hover:ring-emerald-400"
+                        >
+                            {sub}
+                        </button>
+                    ))}
+                </div>
+            );
+        }
+
+        return null;
     };
 
     return (
@@ -125,9 +275,9 @@ function RecipeFilterDesktop({ label, onPick }) {
             <AnimatePresence>
                 {open && (
                     <motion.div
-                        initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+                        initial={{ opacity: 0, y: useReducedMotion ? 0 : -8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+                        exit={{ opacity: 0, y: useReducedMotion ? 0 : -8 }}
                         transition={{ duration: 0.18 }}
                         onMouseLeave={scheduleClose}
                         onMouseEnter={cancelClose}
@@ -138,7 +288,7 @@ function RecipeFilterDesktop({ label, onPick }) {
                                 <Trail path={path} />
 
                                 <div className="mt-2 grid grid-cols-[220px_1fr] gap-3">
-                                    {/* Koren */}
+                                    {/* Koren (SLANO / SLATKO) */}
                                     <div className="overflow-hidden rounded-xl border bg-white">
                                         {rootCats.map((cat) => {
                                             const active = path[0] === cat;
@@ -161,25 +311,9 @@ function RecipeFilterDesktop({ label, onPick }) {
                                         })}
                                     </div>
 
-                                    {/* Potkategorije */}
+                                    {/* Desni panel (sekcije / potkategorije) */}
                                     <div className="rounded-xl border bg-white p-2">
-                                        {path[0] ? (
-                                            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                                                {CATS[path[0]].map((sub) => (
-                                                    <button
-                                                        key={sub}
-                                                        onClick={() => handleLeafClick(path[0], sub)}
-                                                        className="rounded-lg px-3 py-2 text-left text-sm ring-1 ring-transparent transition hover:bg-emerald-50 hover:ring-emerald-400"
-                                                    >
-                                                        {sub}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="px-2 py-4 text-sm text-zinc-500">
-                                                Pređi mišem preko kategorije…
-                                            </div>
-                                        )}
+                                        {renderRightPanel()}
                                     </div>
                                 </div>
                             </div>
@@ -192,13 +326,11 @@ function RecipeFilterDesktop({ label, onPick }) {
 }
 
 /* ========================= MOBILNI (fullscreen drawer) ========================= */
-function RecipeFilterMobile({ label, onPick }) {
+function RecipeFilterMobile({ label, onPick, onSetCategory }) {
     const [open, setOpen] = useState(false);
-    const [path, setPath] = useState([]); // ["slano"]
-    const rootCats = Object.keys(CATS);
+    const [path, setPath] = useState([]); // ["slano"] ili ["slatko"]
     const reduceMotion = useReducedMotion();
 
-    // Zaključaj body scroll dok je modal otvoren
     useEffect(() => {
         if (!open) return;
         const prev = document.body.style.overflow;
@@ -206,16 +338,16 @@ function RecipeFilterMobile({ label, onPick }) {
         return () => (document.body.style.overflow = prev);
     }, [open]);
 
-    const closeAll = () => {
-        setOpen(false);
-        setPath([]);
-    };
+    const closeAll = () => { setOpen(false); setPath([]); };
 
-    const handleRootTap = (cat) => setPath([cat]);
+    const handleRootTap = (cat) => {
+        setPath([cat]);
+        onSetCategory(cat); // odmah postavi category u URL
+    };
     const handleBack = () => setPath([]);
 
-    const handleLeafTap = (cat, sub) => {
-        onPick?.(cat, sub);
+    const handleLeafTap = (cat, leaf) => {
+        onPick?.(cat, leaf);
         closeAll();
     };
 
@@ -232,7 +364,6 @@ function RecipeFilterMobile({ label, onPick }) {
             <AnimatePresence>
                 {open && (
                     <>
-                        {/* Backdrop */}
                         <motion.div
                             className="fixed inset-0 z-[60] bg-black/40"
                             initial={{ opacity: 0 }}
@@ -240,7 +371,6 @@ function RecipeFilterMobile({ label, onPick }) {
                             exit={{ opacity: 0 }}
                             onClick={closeAll}
                         />
-                        {/* Drawer */}
                         <motion.div
                             className="fixed inset-x-0 bottom-0 z-[61] rounded-t-3xl bg-white shadow-2xl"
                             initial={{ y: "100%" }}
@@ -280,7 +410,7 @@ function RecipeFilterMobile({ label, onPick }) {
                             <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 pt-2 text-zinc-800">
                                 {path.length === 0 && (
                                     <div className="grid grid-cols-2 gap-2">
-                                        {rootCats.map((cat) => (
+                                        {["slano", "slatko"].map((cat) => (
                                             <button
                                                 key={cat}
                                                 onClick={() => handleRootTap(cat)}
@@ -288,19 +418,47 @@ function RecipeFilterMobile({ label, onPick }) {
                                             >
                                                 <div className="font-semibold">{cap(cat)}</div>
                                                 <div className="mt-1 text-xs text-zinc-500">
-                                                    {CATS[cat].length} potkategorija
+                                                    {cat === "slano"
+                                                        ? SLANO_GROUPS.reduce((acc, g) => acc + g.items.length, 0)
+                                                        : SLATKO_LIST.length}{" "}
+                                                    potkategorija
                                                 </div>
                                             </button>
                                         ))}
                                     </div>
                                 )}
 
-                                {path.length === 1 && (
+                                {path.length === 1 && path[0] === "slano" && (
                                     <div className="grid grid-cols-1 gap-2">
-                                        {CATS[path[0]].map((sub) => (
+                                        {SLANO_GROUPS.map((g) => (
+                                            <div key={g.section} className="rounded-2xl border bg-white p-3">
+                                                <div className="mb-2 font-semibold">{g.section}</div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {g.items.map((sub) => (
+                                                        <button
+                                                            key={sub}
+                                                            onClick={() =>
+                                                                RUCKAK_SUBS.has(sub)
+                                                                    ? handleLeafTap("slano", sub)
+                                                                    : handleLeafTap("slano", g.section)
+                                                            }
+                                                            className="w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
+                                                        >
+                                                            {sub}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {path.length === 1 && path[0] === "slatko" && (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {SLATKO_LIST.map((sub) => (
                                             <button
                                                 key={sub}
-                                                onClick={() => handleLeafTap(path[0], sub)}
+                                                onClick={() => handleLeafTap("slatko", sub)}
                                                 className="w-full rounded-2xl border bg-white p-4 text-left text-base active:scale-[0.99]"
                                             >
                                                 {sub}

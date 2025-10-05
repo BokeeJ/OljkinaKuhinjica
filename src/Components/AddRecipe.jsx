@@ -1,361 +1,253 @@
-import React, { useMemo, useState } from 'react';
-import axios from '../api'; // ⬅️ globalna axios instanca (baseURL + token)
+import React, { useMemo, useState } from "react";
+import axios from "../api";
 
-// slug -> label (tačno kao u Mongoose enumu)
-const SUBCATEGORY_MAP = {
-    'kolaci': 'Kolaci',
-    'torte': 'Torte',
-    'rucak': 'Rucak',
-    'dorucak': 'Dorucak',
-    'vecera': 'Vecera',
-    'uzina': 'Uzina',
-    'pica': 'Pica',
-    'salate': 'Salate',
-    'hladna-jela': 'Hladna jela',
-    'brza-jela': 'Brza jela',
-    'supe-i-corbe': 'Supe i čorbe',
-    'pecivo': 'Pecivo',
+/* ===== Taksonomija ===== */
+const SECTIONS_BY_CATEGORY = {
+    slano: ["Rucak", "Dorucak", "Vecera", "Predjela", "Peciva", "Posno", "Zimnica"],
+    slatko: ["Kolaci", "Torte", "Dezerti", "Peciva", "Zimnica"],
 };
 
-// podkategorije po kategoriji za lepši UX
-const SUBS_BY_CAT = {
-    slatko: ['kolaci', 'torte'],
-    slano: ['dorucak', 'rucak', 'vecera', 'pica', 'brza-jela', 'salate', 'hladna-jela', 'uzina', 'supe-i-corbe', 'pecivo'],
+const SUBS_BY_SECTION = {
+    // SLANO
+    Rucak: ["Supe i čorbe", "Meso", "Riba", "Povrce", "Paste i spagete"],
+    // SLATKO
+    Kolaci: [
+        "cokoladni",
+        "vocni",
+        "kremasti",
+        "biskvitni",
+        "posni kolaci",
+        "sitni kolaci i keks",
+    ],
+    Torte: [
+        "klasicne",
+        "cokoladne",
+        "vocne",
+        "brze torte bez pecenja",
+        "posne torte",
+        "biskviti za torte",
+    ],
+    // Ostale sekcije NEMAJU podkategorije → subcategory = section
 };
 
 const inputBase =
-    "w-full rounded-xl border border-gray-300 bg-white/90 text-gray-900 placeholder:text-gray-400 " +
-    "focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
+    "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
+const labelBase = "block text-[13px] font-semibold text-zinc-700 mb-1";
 
-const labelBase = "block text-[13px] font-semibold text-gray-700 mb-1";
-
-function AddRecipe() {
+export default function AddRecipe() {
     const [form, setForm] = useState({
-        title: '',
-        category: 'slano',
-        subcategory: '', // slug
-        preparationTime: '',
-        ingredients: '',
-        instructions: '',
-        note: '',
+        title: "",
+        category: "slano",
+        section: "",
+        subcategory: "",
+        preparationTime: "",
+        ingredients: "",
+        instructions: "",
+        note: "",
         coverImage: null,
-        gallery: []
+        gallery: [],
     });
+    const [coverPreview, setCoverPreview] = useState("");
 
-    const [appendQuote, setAppendQuote] = useState(false);
-    const [quoteText, setQuoteText] = useState('Sve što ti se dešava u životu, dešava se za tvoje najveće dobro.');
-    const [coverPreview, setCoverPreview] = useState('');
+    const sections = useMemo(
+        () => SECTIONS_BY_CATEGORY[form.category] || [],
+        [form.category]
+    );
 
-    const subOptions = useMemo(() => SUBS_BY_CAT[form.category] || [], [form.category]);
+    const subs = useMemo(
+        () => SUBS_BY_SECTION[form.section] || [],
+        [form.section]
+    );
 
-    const handleChange = (e) => {
+    const onChange = (e) => {
         const { name, value } = e.target;
-        setForm(prev => {
-            // ako se promeni kategorija, a podkategorija više ne pripada toj grupi — resetuj subcategory
-            if (name === 'category') {
-                const valid = SUBS_BY_CAT[value] || [];
-                return { ...prev, category: value, subcategory: valid.includes(prev.subcategory) ? prev.subcategory : '' };
+        setForm((prev) => {
+            if (name === "category") {
+                // promena taba resetuje sekciju i sub
+                return { ...prev, category: value, section: "", subcategory: "" };
+            }
+            if (name === "section") {
+                // ako nova sekcija nema subove — subcategory čist, biće auto=section na submit
+                return { ...prev, section: value, subcategory: "" };
             }
             return { ...prev, [name]: value };
         });
     };
 
-    const handleCoverImageChange = (e) => {
+    const onCover = (e) => {
         const file = e.target.files?.[0];
-        setForm(prev => ({ ...prev, coverImage: file || null }));
-        setCoverPreview(file ? URL.createObjectURL(file) : '');
+        setForm((p) => ({ ...p, coverImage: file || null }));
+        setCoverPreview(file ? URL.createObjectURL(file) : "");
     };
+    const onGallery = (e) =>
+        setForm((p) => ({ ...p, gallery: Array.from(e.target.files || []) }));
 
-    const handleGalleryChange = (e) => {
-        setForm(prev => ({ ...prev, gallery: Array.from(e.target.files || []) }));
-    };
-
-    const handleSubmit = async (e) => {
+    const submit = async (e) => {
         e.preventDefault();
 
-        if (!form.title.trim()) {
-            alert('Unesi naslov.');
-            return;
-        }
-        if (!form.coverImage) {
-            alert('Molimo dodaj naslovnu sliku.');
-            return;
-        }
-        if (!form.subcategory) {
-            alert('Izaberi podkategoriju.');
-            return;
-        }
+        if (!form.title.trim()) return alert("Unesi naslov.");
+        if (!form.coverImage) return alert("Dodaj naslovnu sliku.");
+        if (!form.section) return alert("Izaberi sekciju.");
 
-        const subLabel = SUBCATEGORY_MAP[form.subcategory];
-        if (!subLabel) {
-            alert('Nepoznata podkategorija.');
-            return;
+        // Ako sekcija ima podkategorije → obavezno izaberi jednu.
+        // Ako nema → subcategory = section (kompatibilnost sa backend validacijom).
+        const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
+        const subLabel = requiresSub ? form.subcategory : form.section;
+        if (requiresSub && !subLabel) {
+            return alert("Izaberi podkategoriju.");
         }
 
-        // Napomena + (opciona) poslovica, uredno razdvojeno
-        let noteFinal = (form.note || '').trim();
-        const quote = (quoteText || '').trim();
-        if (appendQuote && quote) {
-            noteFinal = `${noteFinal ? noteFinal + "\n\n" : ""}— „${quote}”`;
-        }
-
-        const formData = new FormData();
-        formData.append('title', form.title.trim());
-        formData.append('category', String(form.category || '').toLowerCase()); // 'slano' | 'slatko'
-        formData.append('subcategory', subLabel); // tačno ime iz enuma
-        formData.append('preparationTime', form.preparationTime);
-        formData.append('instructions', form.instructions);
-        formData.append('note', noteFinal);
-        formData.append('coverImage', form.coverImage);
-
-        // sastojci – po jedan u redu
-        const ingredientsArray = (form.ingredients || '')
-            .split('\n')
-            .map(s => s.trim())
-            .filter(Boolean);
-        ingredientsArray.forEach((ing) => formData.append('ingredients', ing));
-
+        const fd = new FormData();
+        fd.append("title", form.title.trim());
+        fd.append("category", String(form.category || "").toLowerCase()); // slano|slatko
+        fd.append("section", form.section);                                // npr. Rucak / Kolaci
+        fd.append("subcategory", subLabel);                                // vidi logiku gore
+        fd.append("preparationTime", form.preparationTime);
+        fd.append("instructions", form.instructions);
+        fd.append("note", form.note);
+        fd.append("coverImage", form.coverImage);
+        // sastojci po redu
+        (form.ingredients || "")
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .forEach((ing) => fd.append("ingredients", ing));
         // galerija
-        (form.gallery || []).forEach((file) => formData.append('gallery', file));
+        (form.gallery || []).forEach((file) => fd.append("gallery", file));
 
         try {
-            // Interceptor već šalje Authorization: Bearer <token> i baseURL
-            const res = await axios.post('/api/recipes', formData);
+            // ako tvoja axios instanca već ima baseURL '/api', može biti '/recipes'
+            const { data } = await axios.post("/api/recipes", fd);
+            alert("Recept dodat!");
+            const newId = data?._id || data?.id;
+            if (newId) window.open(`/recept/${newId}`, "_blank", "noopener");
 
-            alert('Recept dodat!');
-
-            // Pokušaj da izvučeš ID novog recepta iz različitih mogućih oblika responsa
-            const newId =
-                res?.data?._id ||
-                res?.data?.id ||
-                res?.data?.recipe?._id ||
-                res?.data?.recipe?.id;
-
-            // Otvori pregled u NOVOM tabu da admin ostane na formi
-            if (newId) {
-                window.open(`/recept/${newId}`, '_blank', 'noopener');
-            }
-
-            // reset forme
+            // reset
             setForm({
-                title: '',
-                category: 'slano',
-                subcategory: '',
-                preparationTime: '',
-                ingredients: '',
-                instructions: '',
-                note: '',
+                title: "",
+                category: form.category, // ostavi izabrani tab
+                section: "",
+                subcategory: "",
+                preparationTime: "",
+                ingredients: "",
+                instructions: "",
+                note: "",
                 coverImage: null,
-                gallery: []
+                gallery: [],
             });
-            setAppendQuote(false);
-            setCoverPreview('');
-
+            setCoverPreview("");
         } catch (err) {
-            console.error('❌ Greška:', err?.response?.data || err.message || err);
-            alert(err?.response?.data?.error || err.message || 'Greška pri dodavanju recepta');
+            console.error(err);
+            alert(err?.response?.data?.error || "Greška pri dodavanju recepta.");
         }
     };
 
-    // prikaz kako će napomena izgledati nakon slanja
-    const notePreview = useMemo(() => {
-        const n = (form.note || '').trim();
-        const q = (quoteText || '').trim();
-        if (appendQuote && q) {
-            return `${n ? n + "\n\n" : ""}— „${q}”`;
-        }
-        return n;
-    }, [form.note, appendQuote, quoteText]);
-
     return (
-        <div className="min-h-screen py-8 px-4 bg-gradient-to-b from-white to-gray-100">
-            <form onSubmit={handleSubmit} className="mx-auto w-full max-w-3xl space-y-6">
-                <div className="bg-white/80 backdrop-blur border rounded-2xl shadow p-5">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">➕ Dodaj recept</h2>
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
+            <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-6">
+                <div className="rounded-3xl bg-white/70 backdrop-blur border border-zinc-200 shadow p-5">
+                    <h2 className="text-xl font-bold text-zinc-900 mb-4">➕ Dodaj recept</h2>
 
                     {/* Naslov */}
                     <label className={labelBase} htmlFor="title">Naslov</label>
-                    <input
-                        id="title"
-                        name="title"
-                        type="text"
-                        placeholder="npr. Kolač sa jabukama"
-                        value={form.title}
-                        onChange={handleChange}
-                        required
-                        className={inputBase}
-                    />
+                    <input id="title" name="title" value={form.title} onChange={onChange}
+                        placeholder="npr. Kolač sa jabukama" className={inputBase} required />
 
-                    {/* Kategorija & Podkategorija */}
+                    {/* Tabaovi: slano / slatko */}
+                    <div className="mt-4 flex items-center gap-2">
+                        {["slano", "slatko"].map((cat) => (
+                            <button key={cat} type="button"
+                                onClick={() => onChange({ target: { name: "category", value: cat } })}
+                                className={`px-4 py-2 rounded-xl text-sm shadow-sm ${form.category === cat
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
+                                    }`}
+                            >
+                                {cat.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Sekcija */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
-                            <label className={labelBase} htmlFor="category">Kategorija</label>
-                            <select
-                                id="category"
-                                name="category"
-                                value={form.category}
-                                onChange={handleChange}
-                                className={inputBase}
-                            >
-                                <option value="slano">Slano</option>
-                                <option value="slatko">Slatko</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className={labelBase} htmlFor="subcategory">Podkategorija</label>
-                            <select
-                                id="subcategory"
-                                name="subcategory"
-                                value={form.subcategory}
-                                onChange={handleChange}
-                                required
-                                className={inputBase}
-                            >
+                            <label className={labelBase} htmlFor="section">Sekcija</label>
+                            <select id="section" name="section" value={form.section} onChange={onChange} required className={inputBase}>
                                 <option value="">Izaberi…</option>
-                                {subOptions.map(slug => (
-                                    <option key={slug} value={slug}>{SUBCATEGORY_MAP[slug]}</option>
+                                {sections.map((sec) => (
+                                    <option key={sec} value={sec}>{sec}</option>
                                 ))}
                             </select>
                         </div>
+
+                        {/* Podkategorija: ako sekcija ima listu, tražimo izbor; ako nema, prikaz hint-a */}
+                        <div>
+                            <label className={labelBase} htmlFor="subcategory">Podkategorija</label>
+                            {subs.length > 0 ? (
+                                <select id="subcategory" name="subcategory" value={form.subcategory} onChange={onChange} required className={inputBase}>
+                                    <option value="">Izaberi…</option>
+                                    {subs.map((s) => (<option key={s} value={s}>{s}</option>))}
+                                </select>
+                            ) : (
+                                <input disabled className={inputBase}
+                                    value={form.section ? `Nema podkategorije — upisaćemo: ${form.section}` : ""}
+                                    placeholder="(izaberi sekciju)" />
+                            )}
+                        </div>
                     </div>
 
-                    {/* Cover slika + preview */}
-                    <div className="mt-4">
-                        <label className={labelBase}>Naslovna slika (cover)</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCoverImageChange}
-                            required
-                            className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
-                        />
-                        {coverPreview && (
-                            <div className="mt-3">
-                                <img
-                                    src={coverPreview}
-                                    alt="Preview"
-                                    className="w-full h-44 object-cover rounded-xl border"
-                                />
-                            </div>
-                        )}
-                    </div>
+                    {/* Cover + Galerija */}
+                    <div className="mt-4 grid grid-cols-1 gap-4">
+                        <div>
+                            <label className={labelBase}>Naslovna slika (cover)</label>
+                            <input type="file" accept="image/*" onChange={onCover}
+                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`} required />
+                            {coverPreview && (
+                                <div className="mt-3 rounded-xl border overflow-hidden">
+                                    <img src={coverPreview} alt="Preview" className="w-full h-44 object-cover" />
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Galerija */}
-                    <div className="mt-4">
-                        <label className={labelBase}>Galerija (slike/video)</label>
-                        <input
-                            type="file"
-                            accept="image/*,video/*"
-                            multiple
-                            onChange={handleGalleryChange}
-                            className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
-                        />
+                        <div>
+                            <label className={labelBase}>Galerija (slike/video)</label>
+                            <input type="file" accept="image/*,video/*" multiple onChange={onGallery}
+                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`} />
+                        </div>
                     </div>
                 </div>
 
-                {/* Vreme / Uputstvo */}
-                <div className="bg-white/80 backdrop-blur border rounded-2xl shadow p-5 space-y-4">
+                {/* Vreme / Uputstvo / Sastojci / Napomena */}
+                <div className="rounded-3xl bg-white/70 backdrop-blur border border-zinc-200 shadow p-5 space-y-4">
                     <div>
                         <label className={labelBase} htmlFor="preparationTime">Vreme pripreme</label>
-                        <input
-                            id="preparationTime"
-                            name="preparationTime"
-                            type="text"
-                            placeholder="npr. 45 minuta ili 1h 10min"
-                            value={form.preparationTime}
-                            onChange={handleChange}
-                            className={inputBase}
-                        />
+                        <input id="preparationTime" name="preparationTime" value={form.preparationTime} onChange={onChange}
+                            placeholder="npr. 45 minuta" className={inputBase} />
                     </div>
 
                     <div>
-                        <label className={labelBase} htmlFor="instructions">Uputstvo za pripremu</label>
-                        <textarea
-                            id="instructions"
-                            name="instructions"
-                            placeholder="Korak 1...&#10;Korak 2..."
-                            value={form.instructions}
-                            onChange={handleChange}
-                            rows={8}
-                            required
-                            className={`${inputBase} min-h-[180px]`}
-                        />
+                        <label className={labelBase} htmlFor="instructions">Uputstvo</label>
+                        <textarea id="instructions" name="instructions" rows={8} value={form.instructions} onChange={onChange}
+                            placeholder="Korak 1...&#10;Korak 2..." className={`${inputBase} min-h-[180px]`} required />
                     </div>
-                </div>
 
-                {/* Sastojci / Napomena / Poslovica */}
-                <div className="bg-white/80 backdrop-blur border rounded-2xl shadow p-5 space-y-4">
                     <div>
-                        <label className={labelBase} htmlFor="ingredients">Sastojci (po jedan u redu)</label>
-                        <textarea
-                            id="ingredients"
-                            name="ingredients"
-                            placeholder={`npr.\n3 jaja\n200 g brašna\n1 čaša jogurta`}
-                            value={form.ingredients}
-                            onChange={handleChange}
-                            rows={6}
-                            required
-                            className={`${inputBase} font-mono`}
-                        />
+                        <label className={labelBase} htmlFor="ingredients">Sastojci (po redu)</label>
+                        <textarea id="ingredients" name="ingredients" rows={6} value={form.ingredients} onChange={onChange}
+                            placeholder={"npr.\n3 jaja\n200 g brašna\n1 čaša jogurta"}
+                            className={`${inputBase} font-mono`} required />
                     </div>
 
                     <div>
                         <label className={labelBase} htmlFor="note">Napomena (opciono)</label>
-                        <textarea
-                            id="note"
-                            name="note"
-                            placeholder="Npr. koristila sam čokoladu sa 70% kakaa"
-                            value={form.note}
-                            onChange={handleChange}
-                            rows={4}
-                            className={`${inputBase} min-h-[120px]`}
-                        />
-                    </div>
-
-                    <div className="rounded-xl border p-3 bg-gray-50">
-                        <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input
-                                type="checkbox"
-                                checked={appendQuote}
-                                onChange={(e) => setAppendQuote(e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                            />
-                            Dodaj poslovicu na kraj napomene
-                        </label>
-
-                        {appendQuote && (
-                            <div className="mt-3">
-                                <label className={labelBase} htmlFor="quote">Poslovica</label>
-                                <input
-                                    id="quote"
-                                    type="text"
-                                    value={quoteText}
-                                    onChange={(e) => setQuoteText(e.target.value)}
-                                    className={inputBase}
-                                    placeholder="Upiši poslovicu…"
-                                />
-                                <p className="mt-2 text-xs text-gray-500">
-                                    Biće dodata sa razmakom i crtom, npr: <em>— „{quoteText || '…'}”</em>
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Live preview */}
-                        <div className="mt-4">
-                            <div className="text-xs font-medium text-gray-600 mb-1">Pregled napomene:</div>
-                            <pre className="whitespace-pre-wrap text-sm bg-white border rounded-xl p-3 text-gray-800">
-                                {notePreview || '— (nema napomene)'}
-                            </pre>
-                        </div>
+                        <textarea id="note" name="note" rows={4} value={form.note} onChange={onChange}
+                            placeholder="Npr. koristila sam čokoladu sa 70% kakaa" className={`${inputBase} min-h-[120px]`} />
                     </div>
                 </div>
 
                 <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow"
-                    >
+                    <button type="submit"
+                        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow">
                         ✅ Dodaj recept
                     </button>
                 </div>
@@ -363,5 +255,3 @@ function AddRecipe() {
         </div>
     );
 }
-
-export default AddRecipe;
