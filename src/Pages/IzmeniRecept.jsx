@@ -1,7 +1,9 @@
+// src/pages/IzmeniRecept.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "../api";
-import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
+import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION, normalizeSectionFE } from "../constants/taxonomy";
+import { canon, displaySub } from "../utils/text";
 
 /* UI helpers */
 const inputBase =
@@ -23,7 +25,7 @@ export default function IzmeniRecept() {
         title: "",
         category: "slano",
         section: "",
-        subcategory: "",
+        subcategory: "", // ← uvek KANON u state-u
         preparationTime: "",
         ingredients: "",
         instructions: "",
@@ -36,28 +38,20 @@ export default function IzmeniRecept() {
     const [gallery, setGallery] = useState([]);
     const [existingGallery, setExistingGallery] = useState([]);
 
-    const sections = useMemo(
-        () => SECTIONS_BY_CATEGORY[form.category] || [],
-        [form.category]
-    );
-    const subs = useMemo(
-        () => SUBS_BY_SECTION[form.section] || [],
-        [form.section]
-    );
+    const sections = useMemo(() => SECTIONS_BY_CATEGORY[form.category] || [], [form.category]);
+    const subs = useMemo(() => SUBS_BY_SECTION[form.section] || [], [form.section]);
 
-    /* ===== LEGACY MAPIRANJE odmah posle fetcha ===== */
+    /* ===== Učitavanje i mapiranje (legacy + dosledan kanon u state-u) ===== */
     useEffect(() => {
         (async () => {
             try {
                 const { data } = await axios.get(`/api/recipes/${id}`);
 
-                // 1) Sekcija: mapiraj stare nazive u nove
-                let section = data.section || "";
-                if (section === "Dorucak" || section === "Vecera") section = "Dorucak/Vecera";
-                if (section === "Pecivo") section = "Pite i peciva";
+                // 1) Sekcija: normalizuj (npr. "pecivo" → "Pite i peciva", "dorucak" → "Dorucak/Vecera")
+                const sectionNorm = normalizeSectionFE(data.section || "");
 
-                // 2) Ako ima podkategoriju, ostavi je; backend će validirati po sekciji
-                const subcategory = data.subcategory || "";
+                // 2) Podkategorija: u STATE čuvamo KANON (mala slova / bez dijakritika)
+                const subCanon = data.subcategory ? canon(data.subcategory) : "";
 
                 // 3) Ostalo
                 const ingredientsText = (data.ingredients || []).join("\n");
@@ -65,8 +59,8 @@ export default function IzmeniRecept() {
                 setForm({
                     title: data.title || "",
                     category: String(data.category || "slano").toLowerCase(),
-                    section,
-                    subcategory,
+                    section: sectionNorm,
+                    subcategory: subCanon, // ← kanon u state
                     preparationTime: data.preparationTime || "",
                     ingredients: ingredientsText,
                     instructions: data.instructions || "",
@@ -87,12 +81,9 @@ export default function IzmeniRecept() {
     const onChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => {
-            if (name === "category") {
-                return { ...prev, category: value, section: "", subcategory: "" };
-            }
-            if (name === "section") {
-                return { ...prev, section: value, subcategory: "" };
-            }
+            if (name === "category") return { ...prev, category: value, section: "", subcategory: "" };
+            if (name === "section") return { ...prev, section: value, subcategory: "" };
+            // za subcategory očekujemo već kanon vrednost iz option.value
             return { ...prev, [name]: value };
         });
     };
@@ -110,14 +101,15 @@ export default function IzmeniRecept() {
         const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
         if (requiresSub && !form.subcategory) return alert("Izaberi podkategoriju.");
 
+        // 🔑 Šaljemo kanonske vrednosti (kao u AddRecipe)
+        const sectionCanon = canon(form.section);
+        const subCanon = requiresSub ? canon(form.subcategory) : undefined;
+
         const data = new FormData();
         data.append("title", form.title.trim());
         data.append("category", String(form.category || "").toLowerCase());
-        data.append("section", form.section);
-        // Šaljemo subcategory SAMO ako sekcija ima podkategorije
-        if (requiresSub && form.subcategory) {
-            data.append("subcategory", form.subcategory);
-        }
+        data.append("section", sectionCanon);
+        if (requiresSub && subCanon) data.append("subcategory", subCanon);
         data.append("preparationTime", form.preparationTime);
         data.append("instructions", form.instructions);
         data.append("note", form.note || "");
@@ -222,15 +214,23 @@ export default function IzmeniRecept() {
                                 <select
                                     id="subcategory"
                                     name="subcategory"
-                                    value={form.subcategory}
-                                    onChange={onChange}
+                                    value={form.subcategory /* ← KANON u state-u */}
+                                    onChange={(e) =>
+                                        // u state upisujemo kanon, opcija već ima kanon kao value
+                                        setForm((p) => ({ ...p, subcategory: e.target.value }))
+                                    }
                                     required
                                     className={inputBase}
                                 >
                                     <option value="">Izaberi…</option>
-                                    {subs.map((s) => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
+                                    {subs.map((s) => {
+                                        const v = canon(s); // value = kanon (npr. "cokoladni")
+                                        return (
+                                            <option key={s} value={v}>
+                                                {displaySub(form.section, s) /* label = lep prikaz */}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             ) : (
                                 <input
@@ -285,7 +285,11 @@ export default function IzmeniRecept() {
                             <input
                                 type="file"
                                 accept="image/*"
-                                onChange={onCover}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    setCoverImage(file || null);
+                                    setCoverPreview(file ? URL.createObjectURL(file) : "");
+                                }}
                                 className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
                             />
                             {coverPreview && (
@@ -326,7 +330,7 @@ export default function IzmeniRecept() {
                             type="file"
                             accept="image/*,video/*"
                             multiple
-                            onChange={onGallery}
+                            onChange={(e) => setGallery(Array.from(e.target.files || []))}
                             className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
                         />
                         <p className="text-[12px] text-zinc-500 mt-2">

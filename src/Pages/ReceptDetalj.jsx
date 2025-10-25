@@ -1,17 +1,29 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+// src/pages/ReceptDetalji.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "../api";
-import Lightbox from 'yet-another-react-lightbox';
-import 'yet-another-react-lightbox/styles.css';
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import { normalizeSectionFE } from "../constants/taxonomy";
+import { displaySub } from "../utils/text";
 
 /* === helpers (izdvojeno van komponente) === */
 const cdn = (url, w = 0) => {
     if (!url) return url;
-    const i = url.indexOf('/upload/');
+    const i = url.indexOf("/upload/");
     if (i === -1) return url;
-    const trans = `f_auto,q_auto${w ? `,w_${w}` : ''}`;
-    return url.slice(0, i + 8) + trans + '/' + url.slice(i + 8);
+    const trans = `f_auto,q_auto${w ? `,w_${w}` : ""}`;
+    return url.slice(0, i + 8) + trans + "/" + url.slice(i + 8);
 };
+
+const prettyCategory = (cat = "") => {
+    const c = String(cat || "").toLowerCase();
+    if (c === "slano") return "Slano";
+    if (c === "slatko") return "Slatko";
+    return c ? c.charAt(0).toUpperCase() + c.slice(1) : "";
+};
+
+const eqi = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
 
 export default function ReceptDetalji() {
     const { id } = useParams();
@@ -33,49 +45,65 @@ export default function ReceptDetalji() {
         })();
     }, [id]);
 
-    // prelepše vreme (ako postoji)
-    const prettyTime = useMemo(() => (recipe?.preparationTime || '').trim(), [recipe]);
+    // lepo vreme (ako postoji)
+    const prettyTime = useMemo(() => (recipe?.preparationTime || "").trim(), [recipe]);
 
     // napomena / poslovica split
     const { noteText, proverb } = useMemo(() => {
-        const raw = String(recipe?.note || '').trim();
-        if (!raw) return { noteText: '', proverb: '' };
+        const raw = String(recipe?.note || "").trim();
+        if (!raw) return { noteText: "", proverb: "" };
 
-        const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+        const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
         let idx = -1;
         for (let i = lines.length - 1; i >= 0; i--) {
             const l = lines[i];
-            const looksQuoted = /^["“].+["”]$/.test(l) || l.includes('“') || l.includes('”');
+            const looksQuoted = /^["“].+["”]$/.test(l) || l.includes("“") || l.includes("”");
             const hasPrefix = /^(poslovica|citat)\s*:/i.test(l);
             if (looksQuoted || hasPrefix) { idx = i; break; }
         }
         if (idx >= 0) {
-            const prov = lines[idx].replace(/^(poslovica|citat)\s*:/i, '').trim();
-            return { noteText: lines.slice(0, idx).join('\n'), proverb: prov };
+            const prov = lines[idx].replace(/^(poslovica|citat)\s*:/i, "").trim();
+            return { noteText: lines.slice(0, idx).join("\n"), proverb: prov };
         }
-        return { noteText: lines.join('\n'), proverb: '' };
+        return { noteText: lines.join("\n"), proverb: "" };
     }, [recipe?.note]);
 
-    // lightbox: prikaži samo slike (video-e reprodukujemo u gridu kao ranije)
+    // badge prikaz (sekcija normalizovana, sub lep prikaz)
+    const sectionDisp = useMemo(
+        () => normalizeSectionFE(recipe?.section || ""),
+        [recipe?.section]
+    );
+    const subDisp = useMemo(
+        () => displaySub(recipe?.section || "", recipe?.subcategory || ""),
+        [recipe?.section, recipe?.subcategory]
+    );
+    const catDisp = useMemo(() => prettyCategory(recipe?.category || ""), [recipe?.category]);
+
+    // anti-dupe za bedževe (case-insensitive)
+    const showSection = sectionDisp && !eqi(sectionDisp, catDisp) && !eqi(sectionDisp, subDisp);
+    const showSub = subDisp && !eqi(subDisp, sectionDisp) && !eqi(subDisp, catDisp);
+
+    // lightbox: prikaži samo slike (video-e u gridu)
     const imageSlides = useMemo(() => {
-        const srcs = (recipe?.gallery || [])
-            .filter((it) => (it.type || '').startsWith('image') || !String(it.type || '').startsWith('video'));
+        const srcs = (recipe?.gallery || []).filter(
+            (it) => (it.type || "").startsWith("image") || !(it.type || "").startsWith("video")
+        );
         return srcs.map((it) => ({ src: it.url }));
     }, [recipe?.gallery]);
 
     // grid za galeriju (i video i slike)
-    const galleryGrid = useMemo(() => {
-        return (recipe?.gallery || []).map((item) =>
-            item.type === 'video'
-                ? { kind: 'video', src: item.url }
-                : { kind: 'image', src: item.url }
-        );
-    }, [recipe?.gallery]);
+    const galleryGrid = useMemo(
+        () =>
+            (recipe?.gallery || []).map((item) =>
+                item.type === "video" ? { kind: "video", src: item.url } : { kind: "image", src: item.url }
+            ),
+        [recipe?.gallery]
+    );
 
     // povratak
-    const fallbackFrom = location.state?.from || (location.search ? `/recepti${location.search}` : '/recepti?page=1');
+    const fallbackFrom =
+        location.state?.from || (location.search ? `/recepti${location.search}` : "/recepti?page=1");
     const handleBack = () => {
-        // ako ima istoriju rute, vrati; u suprotnom idi na fallback
         if (window.history.length > 1) navigate(-1);
         else navigate(fallbackFrom, { replace: true });
     };
@@ -129,17 +157,19 @@ export default function ReceptDetalji() {
                     {/* Meta info */}
                     <div className="px-4 sm:px-6 pt-4">
                         <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                            <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-                                {recipe.category === 'slatko' ? 'Slatko' : 'Slano'}
-                            </span>
-                            {recipe.section && (
+                            {catDisp && (
                                 <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-                                    {recipe.section}
+                                    {catDisp}
                                 </span>
                             )}
-                            {recipe.subcategory && (
+                            {showSection && (
+                                <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                                    {sectionDisp}
+                                </span>
+                            )}
+                            {showSub && (
                                 <span className="px-2 py-1 rounded-full bg-orange-50 text-orange-700 ring-1 ring-orange-200">
-                                    {recipe.subcategory}
+                                    {subDisp}
                                 </span>
                             )}
                             {prettyTime && (
@@ -148,10 +178,7 @@ export default function ReceptDetalji() {
                                 </span>
                             )}
                             <span className="ml-auto text-gray-400">
-                                Dodato:{' '}
-                                {recipe.createdAt
-                                    ? new Date(recipe.createdAt).toLocaleString('sr-RS')
-                                    : '—'}
+                                Dodato: {recipe.createdAt ? new Date(recipe.createdAt).toLocaleString("sr-RS") : "—"}
                             </span>
                         </div>
                     </div>
@@ -172,8 +199,8 @@ export default function ReceptDetalji() {
                         <section className="mb-6">
                             <h2 className="text-lg font-bold text-gray-900 mb-2">Uputstvo za pripremu</h2>
                             <ol className="list-decimal pl-5 space-y-1 text-[15px] leading-relaxed">
-                                {String(recipe.instructions || '')
-                                    .split('\n')
+                                {String(recipe.instructions || "")
+                                    .split("\n")
                                     .map((l) => l.trim())
                                     .filter(Boolean)
                                     .map((step, i) => (
@@ -195,7 +222,7 @@ export default function ReceptDetalji() {
                                 )}
 
                                 {proverb && (
-                                    <div className={noteText ? 'mt-4' : ''}>
+                                    <div className={noteText ? "mt-4" : ""}>
                                         <h3 className="sr-only">Poslovica</h3>
                                         <blockquote className="relative p-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-700 italic">
                                             <span className="absolute -top-3 -left-3 text-orange-400 text-2xl select-none">“</span>
@@ -212,7 +239,7 @@ export default function ReceptDetalji() {
                                 <h2 className="text-lg font-bold text-gray-900 mb-2">Galerija</h2>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {galleryGrid.map((item, idx) =>
-                                        item.kind === 'video' ? (
+                                        item.kind === "video" ? (
                                             <video
                                                 key={idx}
                                                 controls
@@ -253,12 +280,7 @@ export default function ReceptDetalji() {
 
             {/* Lightbox samo za slike */}
             {isOpen && imageSlides.length > 0 && (
-                <Lightbox
-                    open={isOpen}
-                    close={() => setIsOpen(false)}
-                    index={currentIndex}
-                    slides={imageSlides}
-                />
+                <Lightbox open={isOpen} close={() => setIsOpen(false)} index={currentIndex} slides={imageSlides} />
             )}
         </>
     );

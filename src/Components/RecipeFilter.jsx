@@ -7,7 +7,7 @@ import {
     SECTIONS_BY_CATEGORY,
     SUBS_BY_SECTION,
 } from "../constants/taxonomy";
-import { canon } from "../utils/text"; // ⬅️ KANON import
+import { canon } from "../utils/text"; // KANON util
 
 /**
  * Helper: da li data sekcija ima podkategorije
@@ -52,7 +52,7 @@ const findPrettySub = (sectionRaw, subRaw) => {
 export default function RecipeFilterClick() {
     const [sp, setSp] = useSearchParams();
 
-    // Čitamo iz URL-a (mogu biti kanon vrednosti)
+    // Čitamo iz URL-a
     const category = (sp.get("category") || "").toLowerCase(); // "slano" | "slatko" | ""
     const sectionRaw = sp.get("section") || "";
     const subRaw = sp.get("subcategory") || "";
@@ -95,33 +95,32 @@ export default function RecipeFilterClick() {
         setSp(next, { replace: true });
     };
 
-    // ⬇️ KANONIZUJ sekciju pre upisa u URL
+    // Sekciju u URL upisujemo PRETTY; kanon koristimo samo za određivanje grane
     const setSection = (secDisplay) => {
         const secCanon = canon(secDisplay);
         const next = new URLSearchParams(sp);
 
-        // detektuj kojoj grani pripada display naziv
         const inSlano = SECTIONS_BY_CATEGORY.slano.some((s) => canon(s) === secCanon);
         const inSlatko = SECTIONS_BY_CATEGORY.slatko.some((s) => canon(s) === secCanon);
 
         if (inSlano) {
             next.set("category", "slano");
-            next.set("section", secCanon);
-            if (!hasSubs(findPrettySection(secCanon))) next.delete("subcategory");
+            next.set("section", secDisplay); // PRETTY
+            if (!hasSubs(secDisplay)) next.delete("subcategory");
         } else if (inSlatko) {
             next.set("category", "slatko");
-            next.set("section", secCanon);
-            if (!hasSubs(findPrettySection(secCanon))) next.delete("subcategory");
+            next.set("section", secDisplay); // PRETTY
+            if (!hasSubs(secDisplay)) next.delete("subcategory");
         } else {
             // fallback
-            next.set("section", secCanon);
+            next.set("section", secDisplay);  // PRETTY
             next.delete("subcategory");
         }
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
-    // ⬇️ KANONIZUJ i sekciju i sub pre upisa u URL
+    // Podkategoriju u URL upisujemo KANON; sekcija ostaje PRETTY
     const setSub = (secDisplay, subDisplay) => {
         const secCanon = canon(secDisplay);
         const subCanon = canon(subDisplay);
@@ -133,8 +132,8 @@ export default function RecipeFilterClick() {
         if (inSlano) next.set("category", "slano");
         if (inSlatko) next.set("category", "slatko");
 
-        next.set("section", secCanon);
-        next.set("subcategory", subCanon);
+        next.set("section", secDisplay);   // PRETTY
+        next.set("subcategory", subCanon); // KANON
         next.set("page", "1");
         setSp(next, { replace: true });
     };
@@ -249,7 +248,7 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
         <div ref={wrapRef} className="relative hidden md:block">
             <button
                 type="button"
-                onClick={onTrigger} // ← samo klik, bez hovera
+                onClick={onTrigger}
                 className="h-10 rounded-full bg-yellow-500 px-4 text-sm font-semibold text-white shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/60"
                 aria-haspopup="true"
                 aria-expanded={open}
@@ -266,7 +265,7 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                         transition={{ duration: 0.18 }}
                         className="absolute left-1/2 top-14 z-50 -translate-x-1/2"
                     >
-                        <div className="w[760px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
+                        <div className="w-[760px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
                             <div className="rounded-2xl bg-white/95 p-3">
                                 {/* koren tabovi */}
                                 <div className="mb-3 grid grid-cols-2 gap-2">

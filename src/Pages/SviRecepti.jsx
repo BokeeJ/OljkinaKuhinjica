@@ -1,3 +1,4 @@
+// src/pages/SviRecepti.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import axios from "../api";
@@ -5,6 +6,7 @@ import { motion } from "framer-motion";
 import { Star, Flame, Search } from "lucide-react";
 import RecipeFilterClick from "../Components/RecipeFilterClick";
 import { normalizeSectionFE } from "../constants/taxonomy";
+import { displaySub, canon } from "../utils/text";
 
 /* Helpers */
 const getLSArray = (key) => {
@@ -16,6 +18,7 @@ const getLSArray = (key) => {
         return [];
     }
 };
+
 const cdn = (url, w = 0) => {
     if (!url) return url;
     const i = url.indexOf("/upload/");
@@ -23,6 +26,7 @@ const cdn = (url, w = 0) => {
     const trans = `f_auto,q_auto${w ? `,w_${w}` : ""}`;
     return url.slice(0, i + 8) + trans + "/" + url.slice(i + 8);
 };
+
 function makePageList(total, current, max = 9) {
     if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
     const pages = [1];
@@ -38,24 +42,18 @@ function makePageList(total, current, max = 9) {
 }
 
 /* ==== UI text helpers (konzistentni badge-ovi) ==== */
-const toTitle = (s = "") =>
-    String(s)
-        .trim()
-        .toLowerCase()
-        .replace(/\p{L}[\p{L}\p{M}]*/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1));
-
 const eqi = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
 
 const prettyCategory = (cat = "") => {
     const c = String(cat || "").toLowerCase();
     if (c === "slano") return "Slano";
     if (c === "slatko") return "Slatko";
-    return toTitle(c); // fallback za legacy vrednosti
+    // fallback za bilo šta legacy
+    return c ? c.charAt(0).toUpperCase() + c.slice(1) : "";
 };
 
-const prettySection = (section = "") => toTitle(normalizeSectionFE(section || ""));
-
-const prettySub = (sub = "") => toTitle(sub || "");
+// Section prikaz: koristimo normalizovanu vrednost (kanonski oblik iz FE helpera)
+const prettySection = (section = "") => normalizeSectionFE(section || "");
 
 export default function SviRecepti() {
     const userId = "user123";
@@ -110,9 +108,9 @@ export default function SviRecepti() {
         params.set("page", String(page));
         params.set("limit", String(perPage));
         if (q.trim()) params.set("q", q.trim());
-        if (category) params.set("category", category); // slano|slatko
-        if (section) params.set("section", section); // kanonski string (npr. "Pite i peciva")
-        if (subcategory) params.set("subcategory", subcategory);
+        if (category) params.set("category", category);            // slano|slatko (već lc)
+        if (section) params.set("section", canon(section));        // kanonizuj pre API
+        if (subcategory) params.set("subcategory", canon(subcategory)); // kanonizuj pre API
 
         (async () => {
             try {
@@ -144,7 +142,9 @@ export default function SviRecepti() {
         if (likedSet.has(id)) return alert("Već si lajkovao ovaj recept!");
         try {
             const { data } = await axios.post(`/api/recipes/${id}/like`);
-            setItems((prev) => prev.map((r) => (r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r)));
+            setItems((prev) =>
+                prev.map((r) => (r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r))
+            );
             const updated = [...likedRecipes, id];
             setLikedRecipes(updated);
             localStorage.setItem("liked_recipes", JSON.stringify(updated));
@@ -268,7 +268,7 @@ export default function SviRecepti() {
                         items.map((r) => {
                             const catDisp = prettyCategory(r.category);
                             const secDisp = prettySection(r.section || "");
-                            const subDisp = prettySub(r.subcategory || "");
+                            const subDisp = displaySub(r.section || "", r.subcategory || "");
 
                             // sakrij badge ako bi bio duplikat (case-insensitive)
                             const showSection = secDisp && !eqi(secDisp, catDisp) && !eqi(secDisp, subDisp);
@@ -337,8 +337,8 @@ export default function SviRecepti() {
                                                 onClick={() => handleLike(r._id)}
                                                 disabled={likedSet.has(r._id)}
                                                 className={`px-2 py-1 rounded-full text-[11px] shadow-sm ${likedSet.has(r._id)
-                                                        ? "bg-zinc-300 text-white cursor-not-allowed"
-                                                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                    ? "bg-zinc-300 text-white cursor-not-allowed"
+                                                    : "bg-emerald-600 text-white hover:bg-emerald-700"
                                                     }`}
                                             >
                                                 👍 {r.likes || 0}
@@ -346,8 +346,8 @@ export default function SviRecepti() {
                                             <button
                                                 onClick={() => handleFavorite(r._id)}
                                                 className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
-                                                        ? "bg-emerald-600 text-white border-emerald-700"
-                                                        : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
+                                                    ? "bg-emerald-600 text-white border-emerald-700"
+                                                    : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
                                                     }`}
                                                 aria-label="Sačuvaj u omiljene"
                                             >
@@ -374,8 +374,8 @@ export default function SviRecepti() {
                                 onClick={() => handlePageChange(Math.max(page - 1, 1))}
                                 disabled={page === 1}
                                 className={`px-3 py-1.5 rounded-full text-sm ${page === 1
-                                        ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                                        : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
+                                    ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                                    : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
                                     }`}
                                 aria-label="Prethodna strana"
                             >
@@ -392,8 +392,8 @@ export default function SviRecepti() {
                                         key={it}
                                         onClick={() => handlePageChange(it)}
                                         className={`px-3 py-1.5 rounded-full text-sm ${page === it
-                                                ? "bg-emerald-600 text-white"
-                                                : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
+                                            ? "bg-emerald-600 text-white"
+                                            : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
                                             }`}
                                         aria-current={page === it ? "page" : undefined}
                                     >
@@ -406,8 +406,8 @@ export default function SviRecepti() {
                                 onClick={() => handlePageChange(Math.min(page + 1, totalPages))}
                                 disabled={page === totalPages}
                                 className={`px-3 py-1.5 rounded-full text-sm ${page === totalPages
-                                        ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                                        : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
+                                    ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                                    : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
                                     }`}
                                 aria-label="Sledeća strana"
                             >

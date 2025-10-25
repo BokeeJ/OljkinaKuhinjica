@@ -12,7 +12,7 @@ export const SUBS_BY_SECTION = {
     Rucak: ["Supe i čorbe", "Meso", "Riba", "Povrce", "Paste i spagete", "Posno"],
 
     // SLATKO (OBAVEZNO mala slova i bez dijakritike — backend ih tako čuva)
-    Kolaci: ["cokoladni", "vocni", "kremasti", "biskvitni", "posni kolaci", "sitni kolaci i keks"],
+    Kolaci: ["cokoladni", "vocni", "kremasti", "biskvitni", "posni kolaci", "sitni kolaci i keks", "Brzi kolaci"],
     Torte: ["klasicne", "cokoladne", "vocne", "brze torte bez pecenja", "posne torte", "biskviti za torte"],
 };
 

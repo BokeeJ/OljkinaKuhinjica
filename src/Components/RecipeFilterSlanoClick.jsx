@@ -5,8 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-// ⬇️ centralna taksonomija (isti izvor kao Add/Izmeni/SviRecepti)
+// centralna taksonomija (isti izvor kao Add/Izmeni/SviRecepti)
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
+// kanonizacija i lep prikaz (dosledno sa ostatkom app-a)
+import { canon, displaySub } from "../utils/text";
 
 // helper: trim string
 const t = (v) => (typeof v === "string" ? v.trim() : v);
@@ -18,7 +20,7 @@ export default function RecipeFilterSlanoClick() {
     // uvek forsiramo slano u ovoj komponenti
     const category = "slano";
     const section = sp.get("section") || "";
-    const subcategory = sp.get("subcategory") || "";
+    const subcategory = sp.get("subcategory") || ""; // u URL-u držimo KANON (lowercase, bez dijakritika)
 
     // sekcije i ručak podsekcije iz taksonomije
     const SLANO_SECTIONS = SECTIONS_BY_CATEGORY.slano || [];
@@ -52,7 +54,7 @@ export default function RecipeFilterSlanoClick() {
     };
 
     const reset = () => {
-        setOnly({});              // ostaje samo category=slano
+        setOnly({}); // ostaje samo category=slano
         setOpenRucak(false);
     };
 
@@ -72,22 +74,25 @@ export default function RecipeFilterSlanoClick() {
     };
 
     const pickRucakSub = (subRaw) => {
-        const sub = t(subRaw);
+        // u URL-u čuvamo KANON (bitno za backend filter)
+        const sub = canon(t(subRaw) || "");
         setOnly({ section: "Rucak", subcategory: sub });
     };
 
+    // label koristi lep prikaz podkategorije (početno veliko slovo itd.)
     const label = useMemo(() => {
-        if (section && subcategory) return `SLANO • ${section} • ${subcategory}`;
+        const niceSub = displaySub("Rucak", subcategory);
+        if (section && niceSub) return `SLANO • ${section} • ${niceSub}`;
         if (section) return `SLANO • ${section}`;
         return "SLANO • sve";
     }, [section, subcategory]);
 
-    // 💡 specifičan clear za section: briše i subcategory (da ne ostane “viseći”)
+    // specifičan clear za section: briše i subcategory (da ne ostane “viseći”)
     const clearSection = () => {
         const next = new URLSearchParams(sp);
         next.delete("section");
-        next.delete("subcategory");      // ← bitno
-        next.set("category", "slano");   // ova komponenta uvek radi u slano
+        next.delete("subcategory"); // ← bitno
+        next.set("category", "slano"); // ova komponenta uvek radi u slano
         next.set("page", "1");
         setSp(next, { replace: true });
         setOpenRucak(false);
@@ -111,6 +116,7 @@ export default function RecipeFilterSlanoClick() {
             <div className="flex flex-wrap gap-2">
                 {SLANO_SECTIONS.map((sec) => {
                     const isRucak = sec === "Rucak";
+                    // aktivno: za Ručak pazi i na subcategory, koji je u URL-u kanonizovan
                     const active =
                         (section === sec && (!isRucak || (isRucak && !subcategory && openRucak))) ||
                         (isRucak && section === "Rucak" && !!subcategory);
@@ -148,19 +154,21 @@ export default function RecipeFilterSlanoClick() {
                         className="overflow-hidden"
                     >
                         <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-2">
-                            {RUCAK_SUBS.map((sub) => (
-                                <button
-                                    key={sub}
-                                    type="button"
-                                    onClick={() => pickRucakSub(sub)}
-                                    className={`px-3 py-1.5 rounded-full text-sm transition ${subcategory === sub
-                                            ? "bg-pink-500 text-white"
-                                            : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
-                                        }`}
-                                >
-                                    {sub}
-                                </button>
-                            ))}
+                            {RUCAK_SUBS.map((sub) => {
+                                // aktivno poređenje ide preko kanona (URL subcategory je kanon)
+                                const isActive = subcategory === canon(sub);
+                                return (
+                                    <button
+                                        key={sub}
+                                        type="button"
+                                        onClick={() => pickRucakSub(sub)}
+                                        className={`px-3 py-1.5 rounded-full text-sm transition ${isActive ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
+                                            }`}
+                                    >
+                                        {sub}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </motion.div>
                 )}
@@ -169,13 +177,13 @@ export default function RecipeFilterSlanoClick() {
             {/* Aktivni čipovi */}
             <div className="flex flex-wrap gap-2">
                 {section && (
-                    <Chip onClear={clearSection /* ← umesto setParam("section","") */}>
+                    <Chip onClear={clearSection /* briše i subcategory */}>
                         section: {section}
                     </Chip>
                 )}
                 {subcategory && (
                     <Chip onClear={() => setParam("subcategory", "")}>
-                        subcategory: {subcategory}
+                        subcategory: {displaySub("Rucak", subcategory)}
                     </Chip>
                 )}
             </div>
@@ -187,11 +195,7 @@ function Chip({ children, onClear }) {
     return (
         <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-sm bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-sm">
             {children}
-            <button
-                className="text-white/90 hover:text-white"
-                onClick={onClear}
-                aria-label="Ukloni filter"
-            >
+            <button className="text-white/90 hover:text-white" onClick={onClear} aria-label="Ukloni filter">
                 ×
             </button>
         </span>

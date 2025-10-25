@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import axios from "../api";
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
+import { canon, displaySub } from "../utils/text"; // ⬅️ KANON + lep prikaz podkategorije
 
 const inputBase =
     "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
@@ -59,14 +60,17 @@ export default function AddRecipe() {
         if (!form.section) return alert("Izaberi sekciju.");
 
         const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
-        if (requiresSub && !form.subcategory)
-            return alert("Izaberi podkategoriju.");
+        if (requiresSub && !form.subcategory) return alert("Izaberi podkategoriju.");
+
+        // ⬇️ kanonizacija za backend (uniformno čuvanje/upit)
+        const sectionCanon = canon(form.section);                 // "Pite i peciva" -> "pite i peciva"
+        const subCanon = requiresSub ? canon(form.subcategory) : undefined; // "Biskvitni" -> "biskvitni"
 
         const fd = new FormData();
         fd.append("title", form.title.trim());
         fd.append("category", String(form.category || "").toLowerCase()); // 'slano' | 'slatko'
-        fd.append("section", form.section);                                // tačan label (sa dijakritikom)
-        if (requiresSub) fd.append("subcategory", form.subcategory);       // tačan label (sa dijakritikom)
+        fd.append("section", sectionCanon);
+        if (requiresSub && subCanon) fd.append("subcategory", subCanon);
 
         if (form.preparationTime)
             fd.append("preparationTime", String(form.preparationTime).trim());
@@ -110,7 +114,7 @@ export default function AddRecipe() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
-            <form onSubmit={submit} className="mx-auto w/full max-w-3xl space-y-6">
+            <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-6">
                 <div className="rounded-3xl bg-white/70 backdrop-blur border border-zinc-200 shadow p-5">
                     <h2 className="text-xl font-bold text-zinc-900 mb-4">➕ Dodaj recept</h2>
 
@@ -174,7 +178,12 @@ export default function AddRecipe() {
                                     className={inputBase}
                                 >
                                     <option value="">Izaberi…</option>
-                                    {subs.map((s) => <option key={s} value={s}>{s}</option>)}
+                                    {subs.map((s) => (
+                                        // ⬇️ prikaži lepo (Čokoladni…), vrednost ostaje slug (npr. "cokoladni")
+                                        <option key={s} value={s}>
+                                            {displaySub(form.section, s)}
+                                        </option>
+                                    ))}
                                 </select>
                             ) : (
                                 <input
