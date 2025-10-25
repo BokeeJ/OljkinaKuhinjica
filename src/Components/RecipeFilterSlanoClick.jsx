@@ -8,6 +8,9 @@ import { ChevronDown, ChevronUp, X } from "lucide-react";
 // ⬇️ centralna taksonomija (isti izvor kao Add/Izmeni/SviRecepti)
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
 
+// helper: trim string
+const t = (v) => (typeof v === "string" ? v.trim() : v);
+
 export default function RecipeFilterSlanoClick() {
     const [sp, setSp] = useSearchParams();
     const [openRucak, setOpenRucak] = useState(false);
@@ -26,20 +29,23 @@ export default function RecipeFilterSlanoClick() {
         setOpenRucak(section === "Rucak");
     }, [section]);
 
+    // set param (pojedinačno)
     const setParam = (key, val) => {
         const next = new URLSearchParams(sp);
-        if (val === "" || val == null) next.delete(key);
-        else next.set(key, val);
+        const vv = t(val);
+        if (vv === "" || vv == null) next.delete(key);
+        else next.set(key, vv);
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
+    // setOnly: rekonstruiše ceo query (i uvek `category=slano`)
     const setOnly = (obj) => {
         const next = new URLSearchParams();
-        // uvek upiši category=slano za ovu komponentu
         next.set("category", "slano");
         for (const [k, v] of Object.entries(obj)) {
-            if (v != null && v !== "") next.set(k, v);
+            const vv = t(v);
+            if (vv != null && vv !== "") next.set(k, vv);
         }
         next.set("page", "1");
         setSp(next, { replace: true });
@@ -50,7 +56,8 @@ export default function RecipeFilterSlanoClick() {
         setOpenRucak(false);
     };
 
-    const pickSection = (sec) => {
+    const pickSection = (secRaw) => {
+        const sec = t(secRaw);
         if (sec === "Rucak") {
             // toggle i očisti subcategory
             setParam("category", "slano");
@@ -61,10 +68,11 @@ export default function RecipeFilterSlanoClick() {
         }
         // sekcije bez podkategorija
         setOpenRucak(false);
-        setOnly({ section: sec }); // subcategory se neće slati
+        setOnly({ section: sec }); // subcategory se neće slati (čime se i briše)
     };
 
-    const pickRucakSub = (sub) => {
+    const pickRucakSub = (subRaw) => {
+        const sub = t(subRaw);
         setOnly({ section: "Rucak", subcategory: sub });
     };
 
@@ -73,6 +81,17 @@ export default function RecipeFilterSlanoClick() {
         if (section) return `SLANO • ${section}`;
         return "SLANO • sve";
     }, [section, subcategory]);
+
+    // 💡 specifičan clear za section: briše i subcategory (da ne ostane “viseći”)
+    const clearSection = () => {
+        const next = new URLSearchParams(sp);
+        next.delete("section");
+        next.delete("subcategory");      // ← bitno
+        next.set("category", "slano");   // ova komponenta uvek radi u slano
+        next.set("page", "1");
+        setSp(next, { replace: true });
+        setOpenRucak(false);
+    };
 
     return (
         <div className="space-y-3">
@@ -150,7 +169,7 @@ export default function RecipeFilterSlanoClick() {
             {/* Aktivni čipovi */}
             <div className="flex flex-wrap gap-2">
                 {section && (
-                    <Chip onClear={() => setParam("section", "")}>
+                    <Chip onClear={clearSection /* ← umesto setParam("section","") */}>
                         section: {section}
                     </Chip>
                 )}

@@ -1,3 +1,4 @@
+// src/Components/RecipeFilterClick.jsx
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -6,6 +7,7 @@ import {
     SECTIONS_BY_CATEGORY,
     SUBS_BY_SECTION,
 } from "../constants/taxonomy";
+import { canon } from "../utils/text"; // ⬅️ KANON import
 
 /**
  * Helper: da li data sekcija ima podkategorije
@@ -27,28 +29,53 @@ const Badge = ({ children, tone = "zinc" }) => {
     );
 };
 
+/* ---------- pretty helpers (za label prikaz) ---------- */
+const findPrettySection = (raw) => {
+    const c = canon(raw);
+    for (const cat of Object.keys(SECTIONS_BY_CATEGORY)) {
+        for (const sec of SECTIONS_BY_CATEGORY[cat]) {
+            if (canon(sec) === c) return sec;
+        }
+    }
+    return raw;
+};
+const findPrettySub = (sectionRaw, subRaw) => {
+    const secPretty = findPrettySection(sectionRaw);
+    const list = SUBS_BY_SECTION[secPretty] || [];
+    const c = canon(subRaw);
+    for (const s of list) {
+        if (canon(s) === c) return s;
+    }
+    return subRaw;
+};
+
 export default function RecipeFilterClick() {
     const [sp, setSp] = useSearchParams();
 
+    // Čitamo iz URL-a (mogu biti kanon vrednosti)
     const category = (sp.get("category") || "").toLowerCase(); // "slano" | "slatko" | ""
-    const section = sp.get("section") || "";
-    const subcategory = sp.get("subcategory") || "";
+    const sectionRaw = sp.get("section") || "";
+    const subRaw = sp.get("subcategory") || "";
+
+    // Lep prikaz u labelu (mapiranje kanon -> pretty)
+    const sectionPretty = sectionRaw ? findPrettySection(sectionRaw) : "";
+    const subPretty = subRaw ? findPrettySub(sectionRaw, subRaw) : "";
 
     const label = useMemo(() => {
         if (!category) return "🧭 Izaberi kategoriju";
         if (category === "slano") {
-            if (section && subcategory) return `SLANO • ${section} • ${subcategory}`;
-            if (section) return `SLANO • ${section}`;
+            if (sectionPretty && subPretty) return `SLANO • ${sectionPretty} • ${subPretty}`;
+            if (sectionPretty) return `SLANO • ${sectionPretty}`;
             return "SLANO";
         }
         if (category === "slatko") {
-            if (section && subcategory) return `SLATKO • ${section} • ${subcategory}`;
-            if (section) return `SLATKO • ${section}`;
-            if (subcategory) return `SLATKO • ${subcategory}`;
+            if (sectionPretty && subPretty) return `SLATKO • ${sectionPretty} • ${subPretty}`;
+            if (sectionPretty) return `SLATKO • ${sectionPretty}`;
+            if (subPretty) return `SLATKO • ${subPretty}`;
             return "SLATKO";
         }
         return "🧭 Izaberi kategoriju";
-    }, [category, section, subcategory]);
+    }, [category, sectionPretty, subPretty]);
 
     const handleReset = () => {
         const next = new URLSearchParams(sp);
@@ -61,40 +88,53 @@ export default function RecipeFilterClick() {
 
     const setCategory = (cat) => {
         const next = new URLSearchParams(sp);
-        next.set("category", cat);
+        next.set("category", (cat || "").toLowerCase());
         next.delete("section");
         next.delete("subcategory");
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
-    // set sekcija bez seta subcategory: sub se bira posebno ako postoji
-    const setSection = (sec) => {
+    // ⬇️ KANONIZUJ sekciju pre upisa u URL
+    const setSection = (secDisplay) => {
+        const secCanon = canon(secDisplay);
         const next = new URLSearchParams(sp);
-        if (SECTIONS_BY_CATEGORY.slano.includes(sec)) {
+
+        // detektuj kojoj grani pripada display naziv
+        const inSlano = SECTIONS_BY_CATEGORY.slano.some((s) => canon(s) === secCanon);
+        const inSlatko = SECTIONS_BY_CATEGORY.slatko.some((s) => canon(s) === secCanon);
+
+        if (inSlano) {
             next.set("category", "slano");
-            next.set("section", sec);
-            if (!hasSubs(sec)) next.delete("subcategory");
-        } else if (SECTIONS_BY_CATEGORY.slatko.includes(sec)) {
+            next.set("section", secCanon);
+            if (!hasSubs(findPrettySection(secCanon))) next.delete("subcategory");
+        } else if (inSlatko) {
             next.set("category", "slatko");
-            next.set("section", sec);
-            if (!hasSubs(sec)) next.delete("subcategory");
+            next.set("section", secCanon);
+            if (!hasSubs(findPrettySection(secCanon))) next.delete("subcategory");
         } else {
             // fallback
-            next.set("section", sec);
+            next.set("section", secCanon);
             next.delete("subcategory");
         }
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
-    const setSub = (sec, sub) => {
+    // ⬇️ KANONIZUJ i sekciju i sub pre upisa u URL
+    const setSub = (secDisplay, subDisplay) => {
+        const secCanon = canon(secDisplay);
+        const subCanon = canon(subDisplay);
         const next = new URLSearchParams(sp);
-        // uvek postavi i category na osnovu sekcije
-        if (SECTIONS_BY_CATEGORY.slano.includes(sec)) next.set("category", "slano");
-        if (SECTIONS_BY_CATEGORY.slatko.includes(sec)) next.set("category", "slatko");
-        next.set("section", sec);
-        next.set("subcategory", sub);
+
+        const inSlano = SECTIONS_BY_CATEGORY.slano.some((s) => canon(s) === secCanon);
+        const inSlatko = SECTIONS_BY_CATEGORY.slatko.some((s) => canon(s) === secCanon);
+
+        if (inSlano) next.set("category", "slano");
+        if (inSlatko) next.set("category", "slatko");
+
+        next.set("section", secCanon);
+        next.set("subcategory", subCanon);
         next.set("page", "1");
         setSp(next, { replace: true });
     };
@@ -172,7 +212,7 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                         <div key={sec} className="rounded-xl border bg-white p-2">
                             <div className="flex items-center justify-between">
                                 <button
-                                    onClick={() => (subs.length ? setSection(sec) : setSection(sec))}
+                                    onClick={() => setSection(sec)}
                                     className="rounded-md px-2 py-1 text-left text-sm font-semibold hover:bg-emerald-50"
                                 >
                                     {sec}
@@ -226,7 +266,7 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                         transition={{ duration: 0.18 }}
                         className="absolute left-1/2 top-14 z-50 -translate-x-1/2"
                     >
-                        <div className="w-[760px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
+                        <div className="w[760px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
                             <div className="rounded-2xl bg-white/95 p-3">
                                 {/* koren tabovi */}
                                 <div className="mb-3 grid grid-cols-2 gap-2">
@@ -238,8 +278,8 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                                                 setCategory(cat);
                                             }}
                                             className={`rounded-xl px-4 py-2 text-sm font-semibold border shadow-sm ${root === cat
-                                                    ? "bg-emerald-600 text-white border-emerald-700"
-                                                    : "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50"
+                                                ? "bg-emerald-600 text-white border-emerald-700"
+                                                : "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50"
                                                 }`}
                                         >
                                             {cat.toUpperCase()}
@@ -253,7 +293,7 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                                 </div>
 
                                 <div className="mt-3 text-[11px] text-zinc-500">
-                                    Savet: Sekcije koje imaju podkategorije (npr. <b>Rucak</b>, <b>Kolaci</b>, <b>Torte</b>) imaju zeleni “badge”.
+                                    Sekcije sa podkategorijama (npr. <b>Rucak</b>, <b>Kolaci</b>, <b>Torte</b>) imaju zeleni badge.
                                 </div>
                             </div>
                         </div>
@@ -394,7 +434,6 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
     );
 }
 
-/* ========================= Pomoćne ========================= */
-function Trail() {
-    return null; // (zadržano ako poželiš breadcrumb; sada ga ne renderujemo)
-}
+/* (Breadcrumb opcija — trenutno ne koristimo)
+function Trail() { return null; }
+*/

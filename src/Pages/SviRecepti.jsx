@@ -37,6 +37,26 @@ function makePageList(total, current, max = 9) {
     return pages;
 }
 
+/* ==== UI text helpers (konzistentni badge-ovi) ==== */
+const toTitle = (s = "") =>
+    String(s)
+        .trim()
+        .toLowerCase()
+        .replace(/\p{L}[\p{L}\p{M}]*/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+
+const eqi = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
+
+const prettyCategory = (cat = "") => {
+    const c = String(cat || "").toLowerCase();
+    if (c === "slano") return "Slano";
+    if (c === "slatko") return "Slatko";
+    return toTitle(c); // fallback za legacy vrednosti
+};
+
+const prettySection = (section = "") => toTitle(normalizeSectionFE(section || ""));
+
+const prettySub = (sub = "") => toTitle(sub || "");
+
 export default function SviRecepti() {
     const userId = "user123";
     const location = useLocation();
@@ -47,7 +67,6 @@ export default function SviRecepti() {
     const page = Math.max(1, Number(sp.get("page") || 1));
     const q = sp.get("q") || "";
     const category = (sp.get("category") || "").toLowerCase();
-    // Normalizuj section iz URL-a (pecivo → Pite i peciva, dorucak → Dorucak/Vecera…)
     const section = normalizeSectionFE(sp.get("section") || "");
     const subcategory = sp.get("subcategory") || "";
 
@@ -91,8 +110,8 @@ export default function SviRecepti() {
         params.set("page", String(page));
         params.set("limit", String(perPage));
         if (q.trim()) params.set("q", q.trim());
-        if (category) params.set("category", category);         // slano|slatko
-        if (section) params.set("section", section);            // kanonski string (npr. "Pite i peciva")
+        if (category) params.set("category", category); // slano|slatko
+        if (section) params.set("section", section); // kanonski string (npr. "Pite i peciva")
         if (subcategory) params.set("subcategory", subcategory);
 
         (async () => {
@@ -115,7 +134,9 @@ export default function SviRecepti() {
             }
         })();
 
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [page, q, category, section, subcategory]);
 
     /* Actions */
@@ -123,9 +144,7 @@ export default function SviRecepti() {
         if (likedSet.has(id)) return alert("Već si lajkovao ovaj recept!");
         try {
             const { data } = await axios.post(`/api/recipes/${id}/like`);
-            setItems((prev) =>
-                prev.map((r) => (r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r))
-            );
+            setItems((prev) => prev.map((r) => (r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r)));
             const updated = [...likedRecipes, id];
             setLikedRecipes(updated);
             localStorage.setItem("liked_recipes", JSON.stringify(updated));
@@ -148,7 +167,6 @@ export default function SviRecepti() {
     };
 
     /* Filter callbacks (klik filter) */
-    // onPick(cat, section, subcategory)
     const handleFilterPick = (cat, sec, sub = "") => {
         const prevCat = sp.get("category") || "";
         const prevSec = sp.get("section") || "";
@@ -214,7 +232,7 @@ export default function SviRecepti() {
                     </div>
                 </div>
 
-                {/* Filter kartica (SLANO + SLATKO, klik) */}
+                {/* Filter kartica */}
                 <div className="rounded-3xl border border-zinc-200 bg-white/70 backdrop-blur p-3 md:p-4 shadow-sm">
                     <RecipeFilterClick
                         onPick={handleFilterPick}
@@ -247,88 +265,99 @@ export default function SviRecepti() {
                         ))}
 
                     {!loading &&
-                        items.map((r) => (
-                            <motion.article
-                                key={r._id}
-                                initial={{ opacity: 0, y: 12 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.25 }}
-                                className="group rounded-2xl border border-zinc-200 bg-white/80 backdrop-blur overflow-hidden shadow-sm hover:shadow-md transition"
-                            >
-                                <Link
-                                    to={`/recept/${r._id}${location.search}`}
-                                    state={{ from: location.pathname + location.search }}
+                        items.map((r) => {
+                            const catDisp = prettyCategory(r.category);
+                            const secDisp = prettySection(r.section || "");
+                            const subDisp = prettySub(r.subcategory || "");
+
+                            // sakrij badge ako bi bio duplikat (case-insensitive)
+                            const showSection = secDisp && !eqi(secDisp, catDisp) && !eqi(secDisp, subDisp);
+                            const showSub = subDisp && !eqi(subDisp, secDisp) && !eqi(subDisp, catDisp);
+
+                            return (
+                                <motion.article
+                                    key={r._id}
+                                    initial={{ opacity: 0, y: 12 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.25 }}
+                                    className="group rounded-2xl border border-zinc-200 bg-white/80 backdrop-blur overflow-hidden shadow-sm hover:shadow-md transition"
                                 >
-                                    <div className="relative">
-                                        {r?.coverImage?.url && (
-                                            <img
-                                                src={cdn(r.coverImage.url, 640)}
-                                                alt={r.title}
-                                                className="w-full h-40 md:h-44 object-cover"
-                                                loading="lazy"
-                                            />
-                                        )}
-                                        {/* preparationTime u bazi je string → prikaži ako postoji */}
-                                        {r.preparationTime && String(r.preparationTime).trim() && (
-                                            <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
-                                                ⏱ {r.preparationTime}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="p-3">
-                                        <h3 className="text-zinc-900 font-semibold text-sm line-clamp-2 group-hover:text-emerald-700 transition">
-                                            {r.title}
-                                        </h3>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {r.category && (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 border border-zinc-200">
-                                                    {String(r.category).toUpperCase()}
-                                                </span>
+                                    <Link
+                                        to={`/recept/${r._id}${location.search}`}
+                                        state={{ from: location.pathname + location.search }}
+                                    >
+                                        <div className="relative">
+                                            {r?.coverImage?.url && (
+                                                <img
+                                                    src={cdn(r.coverImage.url, 640)}
+                                                    alt={r.title}
+                                                    className="w-full h-40 md:h-44 object-cover"
+                                                    loading="lazy"
+                                                />
                                             )}
-                                            {r.section && (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                    {r.section}
-                                                </span>
-                                            )}
-                                            {r.subcategory && (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-pink-50 text-pink-700 border border-pink-200">
-                                                    {r.subcategory}
+                                            {r.preparationTime && String(r.preparationTime).trim() && (
+                                                <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
+                                                    ⏱ {r.preparationTime}
                                                 </span>
                                             )}
                                         </div>
-                                    </div>
-                                </Link>
+                                        <div className="p-3">
+                                            <h3 className="text-zinc-900 font-semibold text-sm line-clamp-2 group-hover:text-emerald-700 transition">
+                                                {r.title}
+                                            </h3>
 
-                                <div className="px-3 pb-3 flex items-center justify-between">
-                                    <span className="text-[10px] text-zinc-500">
-                                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString("sr-RS") : ""}
-                                    </span>
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => handleLike(r._id)}
-                                            disabled={likedSet.has(r._id)}
-                                            className={`px-2 py-1 rounded-full text-[11px] shadow-sm ${likedSet.has(r._id)
-                                                    ? "bg-zinc-300 text-white cursor-not-allowed"
-                                                    : "bg-emerald-600 text-white hover:bg-emerald-700"
-                                                }`}
-                                        >
-                                            👍 {r.likes || 0}
-                                        </button>
-                                        <button
-                                            onClick={() => handleFavorite(r._id)}
-                                            className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
-                                                    ? "bg-emerald-600 text-white border-emerald-700"
-                                                    : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
-                                                }`}
-                                            aria-label="Sačuvaj u omiljene"
-                                        >
-                                            <Star className="h-3.5 w-3.5" />
-                                        </button>
+                                            {/* ✅ konzistentni badge-ovi, bez duplikata */}
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                {catDisp && (
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 border border-zinc-200">
+                                                        {catDisp}
+                                                    </span>
+                                                )}
+                                                {showSection && (
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        {secDisp}
+                                                    </span>
+                                                )}
+                                                {showSub && (
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-pink-50 text-pink-700 border border-pink-200">
+                                                        {subDisp}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </Link>
+
+                                    <div className="px-3 pb-3 flex items-center justify-between">
+                                        <span className="text-[10px] text-zinc-500">
+                                            {r.createdAt ? new Date(r.createdAt).toLocaleDateString("sr-RS") : ""}
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => handleLike(r._id)}
+                                                disabled={likedSet.has(r._id)}
+                                                className={`px-2 py-1 rounded-full text-[11px] shadow-sm ${likedSet.has(r._id)
+                                                        ? "bg-zinc-300 text-white cursor-not-allowed"
+                                                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                    }`}
+                                            >
+                                                👍 {r.likes || 0}
+                                            </button>
+                                            <button
+                                                onClick={() => handleFavorite(r._id)}
+                                                className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
+                                                        ? "bg-emerald-600 text-white border-emerald-700"
+                                                        : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
+                                                    }`}
+                                                aria-label="Sačuvaj u omiljene"
+                                            >
+                                                <Star className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.article>
-                        ))}
+                                </motion.article>
+                            );
+                        })}
                 </div>
 
                 {!loading && items.length === 0 && (

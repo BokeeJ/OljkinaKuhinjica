@@ -1,8 +1,8 @@
 // src/Components/RecipeFilterClick.jsx
 "use client";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
 // ⬇️ CENTRALNA TAKSONOMIJA (isti izvor kao Add/Izmeni)
@@ -62,6 +62,8 @@ const hasSubs = (section) =>
 const isShowAllSub = (sub) =>
     typeof sub === "string" && /^(svi|sve)\s/i.test(sub); // "Svi kolaci" / "Sve torte"
 
+const trimv = (v) => (typeof v === "string" ? v.trim() : v);
+
 /* ========================================================= */
 export default function RecipeFilterClick() {
     const [sp, setSp] = useSearchParams();
@@ -75,7 +77,7 @@ export default function RecipeFilterClick() {
     const [activeTab, setActiveTab] = useState(category || "");
     useEffect(() => setActiveTab(category || ""), [category]);
 
-    // collapse otvaranje: znamo da podsekcije imaju samo Rucak/Kolaci/Torte
+    // collapse otvaranje: podsekcije imaju samo Rucak/Kolaci/Torte
     const [openMap, setOpenMap] = useState({ Rucak: false, Kolaci: false, Torte: false });
     useEffect(() => {
         setOpenMap({
@@ -85,11 +87,19 @@ export default function RecipeFilterClick() {
         });
     }, [category, section]);
 
+    /* ------ helpers ------ */
+    const ensureCategoryForSection = (sec) => {
+        if (SECTIONS_BY_CATEGORY.slano.includes(sec)) return "slano";
+        if (SECTIONS_BY_CATEGORY.slatko.includes(sec)) return "slatko";
+        return category || ""; // fallback na postojeće ili prazno
+    };
+
     /* ------ URL setter-i ------ */
     const setOnly = (obj) => {
         const next = new URLSearchParams();
         for (const [k, v] of Object.entries(obj)) {
-            if (v != null && v !== "") next.set(k, v);
+            const t = trimv(v);
+            if (t != null && t !== "") next.set(k, t);
         }
         next.set("page", "1");
         setSp(next, { replace: true });
@@ -97,8 +107,9 @@ export default function RecipeFilterClick() {
 
     const setParam = (k, v) => {
         const next = new URLSearchParams(sp);
-        if (v == null || v === "") next.delete(k);
-        else next.set(k, v);
+        const t = trimv(v);
+        if (t == null || t === "") next.delete(k);
+        else next.set(k, t);
         next.set("page", "1");
         setSp(next, { replace: true });
     };
@@ -117,29 +128,37 @@ export default function RecipeFilterClick() {
     };
 
     /* ------ Klikovi za sekcije/subove ------ */
-    const clickSection = (cat, sec) => {
-        if (activeTab !== cat) setActiveTab(cat);
+    const clickSection = (cat, secRaw) => {
+        const sec = trimv(secRaw);
+        const catFromSec = ensureCategoryForSection(sec);
+        const finalCat = cat || catFromSec || "slano"; // sigurnost
+
+        if (activeTab !== finalCat) setActiveTab(finalCat);
 
         if (hasSubs(sec)) {
-            // setuj category + section, ali ne subcategory; toggle odgovarajući collapse
-            setParam("category", cat);
+            // setuj category + section, ali ne subcategory; otvori samo taj collapse, ostale zatvori
+            setParam("category", finalCat);
             setParam("section", sec);
             setParam("subcategory", "");
-            setOpenMap((m) => ({ ...m, [sec]: !m[sec] }));
+            setOpenMap({ Rucak: false, Kolaci: false, Torte: false, [sec]: true });
             return;
         }
         // sekcija bez subova
         setOpenMap({ Rucak: false, Kolaci: false, Torte: false });
-        setOnly({ category: cat, section: sec });
+        setOnly({ category: finalCat, section: sec });
     };
 
-    const clickSub = (cat, sec, sub) => {
+    const clickSub = (cat, secRaw, subRaw) => {
+        const sec = trimv(secRaw);
+        const sub = trimv(subRaw);
+        const finalCat = cat || ensureCategoryForSection(sec) || "slano";
+
         if (isShowAllSub(sub)) {
             // npr. "Svi kolaci" / "Sve torte" → samo section
-            setOnly({ category: cat, section: sec });
+            setOnly({ category: finalCat, section: sec });
             return;
         }
-        setOnly({ category: cat, section: sec, subcategory: sub });
+        setOnly({ category: finalCat, section: sec, subcategory: sub });
     };
 
     /* ------ Label ------ */
@@ -168,15 +187,9 @@ export default function RecipeFilterClick() {
 
             {/* tabovi */}
             <div className="flex flex-wrap gap-2">
-                <Tab active={activeTab === ""} onClick={() => pickTab("")}>
-                    Sve
-                </Tab>
-                <Tab active={activeTab === "slano"} onClick={() => pickTab("slano")}>
-                    Slano
-                </Tab>
-                <Tab active={activeTab === "slatko"} onClick={() => pickTab("slatko")}>
-                    Slatko
-                </Tab>
+                <Tab active={activeTab === ""} onClick={() => pickTab("")}>Sve</Tab>
+                <Tab active={activeTab === "slano"} onClick={() => pickTab("slano")}>Slano</Tab>
+                <Tab active={activeTab === "slatko"} onClick={() => pickTab("slatko")}>Slatko</Tab>
             </div>
 
             {/* SLANO */}

@@ -1,3 +1,4 @@
+// src/pages/AddRecipe.jsx
 import React, { useMemo, useState } from "react";
 import axios from "../api";
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
@@ -33,8 +34,10 @@ export default function AddRecipe() {
     const onChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => {
-            if (name === "category") return { ...prev, category: value, section: "", subcategory: "" };
-            if (name === "section") return { ...prev, section: value, subcategory: "" };
+            if (name === "category")
+                return { ...prev, category: value, section: "", subcategory: "" };
+            if (name === "section")
+                return { ...prev, section: value, subcategory: "" };
             return { ...prev, [name]: value };
         });
     };
@@ -56,17 +59,20 @@ export default function AddRecipe() {
         if (!form.section) return alert("Izaberi sekciju.");
 
         const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
-        if (requiresSub && !form.subcategory) return alert("Izaberi podkategoriju.");
+        if (requiresSub && !form.subcategory)
+            return alert("Izaberi podkategoriju.");
 
         const fd = new FormData();
         fd.append("title", form.title.trim());
         fd.append("category", String(form.category || "").toLowerCase()); // 'slano' | 'slatko'
-        fd.append("section", form.section);                                // npr. 'Rucak'
-        if (requiresSub) fd.append("subcategory", form.subcategory);       // samo kada postoji
+        fd.append("section", form.section);                                // tačan label (sa dijakritikom)
+        if (requiresSub) fd.append("subcategory", form.subcategory);       // tačan label (sa dijakritikom)
 
-        fd.append("preparationTime", form.preparationTime);
-        fd.append("instructions", form.instructions);
-        fd.append("note", form.note);
+        if (form.preparationTime)
+            fd.append("preparationTime", String(form.preparationTime).trim());
+        if (form.instructions) fd.append("instructions", form.instructions.trim());
+        if (form.note) fd.append("note", form.note.trim());
+
         fd.append("coverImage", form.coverImage);
 
         (form.ingredients || "")
@@ -104,7 +110,7 @@ export default function AddRecipe() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
-            <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-6">
+            <form onSubmit={submit} className="mx-auto w/full max-w-3xl space-y-6">
                 <div className="rounded-3xl bg-white/70 backdrop-blur border border-zinc-200 shadow p-5">
                     <h2 className="text-xl font-bold text-zinc-900 mb-4">➕ Dodaj recept</h2>
 
@@ -128,8 +134,8 @@ export default function AddRecipe() {
                                 type="button"
                                 onClick={() => onChange({ target: { name: "category", value: cat } })}
                                 className={`px-4 py-2 rounded-xl text-sm shadow-sm ${form.category === cat
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
                                     }`}
                             >
                                 {cat.toUpperCase()}
