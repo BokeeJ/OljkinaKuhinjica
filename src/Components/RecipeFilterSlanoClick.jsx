@@ -1,18 +1,30 @@
-import React, { useMemo, useState } from "react";
+// src/Components/RecipeFilterSlanoClick.jsx
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-/** Sekcije i Ručak → podkategorije */
-const SECTIONS = ["Rucak", "Dorucak", "Vecera", "Predjela", "Peciva", "Posno", "Zimnica"];
-const RUCAK_SUBS = ["Supe i čorbe", "Meso", "Riba", "Povrce", "Paste i spagete"];
+// ⬇️ centralna taksonomija (isti izvor kao Add/Izmeni/SviRecepti)
+import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
 
 export default function RecipeFilterSlanoClick() {
     const [sp, setSp] = useSearchParams();
     const [openRucak, setOpenRucak] = useState(false);
 
-    const category = (sp.get("category") || "slano").toLowerCase();
+    // uvek forsiramo slano u ovoj komponenti
+    const category = "slano";
     const section = sp.get("section") || "";
     const subcategory = sp.get("subcategory") || "";
+
+    // sekcije i ručak podsekcije iz taksonomije
+    const SLANO_SECTIONS = SECTIONS_BY_CATEGORY.slano || [];
+    const RUCAK_SUBS = SUBS_BY_SECTION.Rucak || [];
+
+    // ako URL dođe spolja na ručak → drži collapse otvoren
+    useEffect(() => {
+        setOpenRucak(section === "Rucak");
+    }, [section]);
 
     const setParam = (key, val) => {
         const next = new URLSearchParams(sp);
@@ -24,6 +36,8 @@ export default function RecipeFilterSlanoClick() {
 
     const setOnly = (obj) => {
         const next = new URLSearchParams();
+        // uvek upiši category=slano za ovu komponentu
+        next.set("category", "slano");
         for (const [k, v] of Object.entries(obj)) {
             if (v != null && v !== "") next.set(k, v);
         }
@@ -32,65 +46,71 @@ export default function RecipeFilterSlanoClick() {
     };
 
     const reset = () => {
-        setOnly({ category: "slano" });
+        setOnly({});              // ostaje samo category=slano
         setOpenRucak(false);
     };
 
     const pickSection = (sec) => {
-        // klik na „Rucak“ samo otvara/zaklapa i čisti subcategory
         if (sec === "Rucak") {
+            // toggle i očisti subcategory
             setParam("category", "slano");
             setParam("section", "Rucak");
             setParam("subcategory", "");
             setOpenRucak((v) => !v);
             return;
         }
-        // ostale sekcije su „leaf“ (nema subcategory)
-        setOnly({ category: "slano", section: sec });
+        // sekcije bez podkategorija
         setOpenRucak(false);
+        setOnly({ section: sec }); // subcategory se neće slati
     };
 
     const pickRucakSub = (sub) => {
-        setOnly({ category: "slano", section: "Rucak", subcategory: sub });
+        setOnly({ section: "Rucak", subcategory: sub });
     };
 
     const label = useMemo(() => {
-        if (category !== "slano") return "SLANO";
         if (section && subcategory) return `SLANO • ${section} • ${subcategory}`;
         if (section) return `SLANO • ${section}`;
         return "SLANO • sve";
-    }, [category, section, subcategory]);
+    }, [section, subcategory]);
 
     return (
         <div className="space-y-3">
             {/* Header + Reset */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-300">{label}</span>
+                <span className="text-sm text-zinc-700">{label}</span>
                 <button
                     type="button"
                     onClick={reset}
-                    className="ml-auto px-3 py-1.5 rounded-full text-sm bg-zinc-200 text-black hover:bg-zinc-300 transition"
+                    className="ml-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
                 >
-                    Resetuj
+                    <X size={14} /> Reset
                 </button>
             </div>
 
             {/* Glavne sekcije (klik) */}
             <div className="flex flex-wrap gap-2">
-                {SECTIONS.map((sec) => {
-                    const active = section === sec && (sec !== "Rucak" || (sec === "Rucak" && !subcategory && openRucak)) ||
-                        (sec === "Rucak" && section === "Rucak" && !!subcategory);
+                {SLANO_SECTIONS.map((sec) => {
+                    const isRucak = sec === "Rucak";
+                    const active =
+                        (section === sec && (!isRucak || (isRucak && !subcategory && openRucak))) ||
+                        (isRucak && section === "Rucak" && !!subcategory);
+
                     return (
                         <button
                             key={sec}
                             type="button"
                             onClick={() => pickSection(sec)}
-                            className={`px-3 py-1.5 rounded-full text-sm transition ${active ? "bg-pink-500 text-white" : "bg-white text-black"
+                            className={`px-3 py-1.5 rounded-full text-sm transition inline-flex items-center gap-1.5 ${active
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
                                 }`}
                         >
                             {sec}
-                            {sec === "Rucak" && (
-                                <span className="ml-1 opacity-70">{openRucak ? "▲" : "▼"}</span>
+                            {isRucak && (
+                                <span className="ml-1 opacity-80">
+                                    {openRucak ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </span>
                             )}
                         </button>
                     );
@@ -108,13 +128,15 @@ export default function RecipeFilterSlanoClick() {
                         transition={{ duration: 0.18 }}
                         className="overflow-hidden"
                     >
-                        <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-zinc-200 bg-white p-2">
+                        <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-2">
                             {RUCAK_SUBS.map((sub) => (
                                 <button
                                     key={sub}
                                     type="button"
                                     onClick={() => pickRucakSub(sub)}
-                                    className={`px-3 py-1.5 rounded-full text-sm transition ${subcategory === sub ? "bg-pink-500 text-white" : "bg-zinc-100 text-black"
+                                    className={`px-3 py-1.5 rounded-full text-sm transition ${subcategory === sub
+                                            ? "bg-pink-500 text-white"
+                                            : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
                                         }`}
                                 >
                                     {sub}
@@ -144,10 +166,10 @@ export default function RecipeFilterSlanoClick() {
 
 function Chip({ children, onClear }) {
     return (
-        <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-sm bg-pink-500 text-white">
+        <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-sm bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-sm">
             {children}
             <button
-                className="text-white/80 hover:text-white"
+                className="text-white/90 hover:text-white"
                 onClick={onClear}
                 aria-label="Ukloni filter"
             >

@@ -1,30 +1,22 @@
 // src/Components/RecipeFilterClick.jsx
-import React, { useEffect, useMemo, useState } from "react";
+"use client";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-/* -------------------- KONFIG -------------------- */
-/** SLANO */
-const SLANO_SECTIONS = ["Rucak", "Dorucak", "Vecera", "Predjela", "Peciva", "Posno", "Zimnica"];
-const RUCAK_SUBS = ["Supe i čorbe", "Meso", "Riba", "Povrce", "Paste i spagete"];
+// ⬇️ CENTRALNA TAKSONOMIJA (isti izvor kao Add/Izmeni)
+import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
 
-/** SLATKO */
-const SLATKO_SECTIONS = ["Kolaci", "Torte", "Dezerti", "Peciva", "Zimnica"];
-const KOLACI_SUBS = [
-    "Svi kolaci", "cokoladni", "vocni", "kremasti", "biskvitni", "posni kolaci", "sitni kolaci i keks"
-];
-const TORTE_SUBS = [
-    "Sve torte", "klasicne", "cokoladne", "vocne", "brze torte bez pecenja", "posne torte", "biskviti za torte"
-];
-
-/* -------------------- UI Helpers -------------------- */
+/* ---------- UI helpers ---------- */
 function Tab({ active, onClick, children }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`px-4 py-1.5 rounded-full text-sm transition shadow-sm ${active ? "bg-emerald-600 text-white" : "bg-white/80 border border-zinc-300 text-zinc-800 hover:bg-white"
+            className={`px-4 py-1.5 rounded-full text-sm transition shadow-sm ${active
+                    ? "bg-emerald-600 text-white"
+                    : "bg-white/80 border border-zinc-300 text-zinc-800 hover:bg-white"
                 }`}
         >
             {children}
@@ -34,13 +26,17 @@ function Tab({ active, onClick, children }) {
 
 function Pill({ active, onClick, children, caret = null, subtle = false }) {
     const base = subtle
-        ? (active ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200")
-        : (active ? "bg-emerald-600 text-white" : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white");
+        ? active
+            ? "bg-pink-500 text-white"
+            : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
+        : active
+            ? "bg-emerald-600 text-white"
+            : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white";
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`px-3 py-1.5 rounded-full text-sm transition ${base} inline-flex items-center gap-1.5`}
+            className={`px-3 py-1.5 rounded-full text-sm transition inline-flex items-center gap-1.5 ${base}`}
         >
             <span>{children}</span>
             {caret}
@@ -52,36 +48,44 @@ function Chip({ children, onClear }) {
     return (
         <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-sm bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-sm">
             {children}
-            <button className="text-white/90 hover:text-white" onClick={onClear} aria-label="Ukloni filter"><X size={14} /></button>
+            <button className="text-white/90 hover:text-white" onClick={onClear} aria-label="Ukloni filter">
+                <X size={14} />
+            </button>
         </span>
     );
 }
 
-/* -------------------- FILTER -------------------- */
+/* ---------- util ---------- */
+const hasSubs = (section) =>
+    Array.isArray(SUBS_BY_SECTION[section]) && SUBS_BY_SECTION[section].length > 0;
+
+const isShowAllSub = (sub) =>
+    typeof sub === "string" && /^(svi|sve)\s/i.test(sub); // "Svi kolaci" / "Sve torte"
+
+/* ========================================================= */
 export default function RecipeFilterClick() {
     const [sp, setSp] = useSearchParams();
 
-    // URL state
+    // URL state (iz istine u URL-u)
     const category = (sp.get("category") || "").toLowerCase(); // "", "slano", "slatko"
     const section = sp.get("section") || "";
     const subcategory = sp.get("subcategory") || "";
 
-    // Aktivni tab ("" = sve); automatski prati URL
+    // aktivni tab (sledi URL)
     const [activeTab, setActiveTab] = useState(category || "");
     useEffect(() => setActiveTab(category || ""), [category]);
 
-    // Collapse state (lokalno – da radi odmah na klik, nezavisno od URL re-rendera)
-    const [openRucak, setOpenRucak] = useState(false);
-    const [openKolaci, setOpenKolaci] = useState(false);
-    const [openTorte, setOpenTorte] = useState(false);
-
-    // Kad URL kaže da smo u grani, drži collapse otvoren
+    // collapse otvaranje: znamo da podsekcije imaju samo Rucak/Kolaci/Torte
+    const [openMap, setOpenMap] = useState({ Rucak: false, Kolaci: false, Torte: false });
     useEffect(() => {
-        setOpenRucak(category === "slano" && section === "Rucak");
-        setOpenKolaci(category === "slatko" && section === "Kolaci");
-        setOpenTorte(category === "slatko" && section === "Torte");
+        setOpenMap({
+            Rucak: category === "slano" && section === "Rucak",
+            Kolaci: category === "slatko" && section === "Kolaci",
+            Torte: category === "slatko" && section === "Torte",
+        });
     }, [category, section]);
 
+    /* ------ URL setter-i ------ */
     const setOnly = (obj) => {
         const next = new URLSearchParams();
         for (const [k, v] of Object.entries(obj)) {
@@ -102,68 +106,43 @@ export default function RecipeFilterClick() {
     const resetAll = () => {
         setOnly({});
         setActiveTab("");
-        setOpenRucak(false);
-        setOpenKolaci(false);
-        setOpenTorte(false);
+        setOpenMap({ Rucak: false, Kolaci: false, Torte: false });
     };
 
-    /* Tabs */
+    /* ------ Tabs ------ */
     const pickTab = (tab) => {
         setActiveTab(tab);
         if (!tab) return resetAll();
         setOnly({ category: tab });
     };
 
-    /* SLANO */
-    const clickSlanoSection = (sec) => {
-        // ako si slučajno na "slatko", prebaci na "slano"
-        if (activeTab !== "slano") setActiveTab("slano");
-        if (sec === "Rucak") {
-            setParam("category", "slano");
-            setParam("section", "Rucak");
+    /* ------ Klikovi za sekcije/subove ------ */
+    const clickSection = (cat, sec) => {
+        if (activeTab !== cat) setActiveTab(cat);
+
+        if (hasSubs(sec)) {
+            // setuj category + section, ali ne subcategory; toggle odgovarajući collapse
+            setParam("category", cat);
+            setParam("section", sec);
             setParam("subcategory", "");
-            setOpenRucak((v) => !v);
+            setOpenMap((m) => ({ ...m, [sec]: !m[sec] }));
             return;
         }
-        setOnly({ category: "slano", section: sec });
-        setOpenRucak(false);
-    };
-    const clickRucakSub = (sub) => {
-        setOnly({ category: "slano", section: "Rucak", subcategory: sub });
+        // sekcija bez subova
+        setOpenMap({ Rucak: false, Kolaci: false, Torte: false });
+        setOnly({ category: cat, section: sec });
     };
 
-    /* SLATKO */
-    const clickSlatkoSection = (sec) => {
-        if (activeTab !== "slatko") setActiveTab("slatko");
-        if (sec === "Kolaci") {
-            setParam("category", "slatko");
-            setParam("section", "Kolaci");
-            setParam("subcategory", "");
-            setOpenKolaci((v) => !v);
-            setOpenTorte(false);
+    const clickSub = (cat, sec, sub) => {
+        if (isShowAllSub(sub)) {
+            // npr. "Svi kolaci" / "Sve torte" → samo section
+            setOnly({ category: cat, section: sec });
             return;
         }
-        if (sec === "Torte") {
-            setParam("category", "slatko");
-            setParam("section", "Torte");
-            setParam("subcategory", "");
-            setOpenTorte((v) => !v);
-            setOpenKolaci(false);
-            return;
-        }
-        setOnly({ category: "slatko", section: sec });
-        setOpenKolaci(false);
-        setOpenTorte(false);
-    };
-    const clickKolaciSub = (sub) => {
-        if (sub === "Svi kolaci") setOnly({ category: "slatko", section: "Kolaci" });
-        else setOnly({ category: "slatko", section: "Kolaci", subcategory: sub });
-    };
-    const clickTorteSub = (sub) => {
-        if (sub === "Sve torte") setOnly({ category: "slatko", section: "Torte" });
-        else setOnly({ category: "slatko", section: "Torte", subcategory: sub });
+        setOnly({ category: cat, section: sec, subcategory: sub });
     };
 
+    /* ------ Label ------ */
     const label = useMemo(() => {
         if (!category && !section) return "Filtriraj recepte";
         const head = category ? category.toUpperCase() : "SVE";
@@ -172,9 +151,10 @@ export default function RecipeFilterClick() {
         return head;
     }, [category, section, subcategory]);
 
+    /* ------ Render ------ */
     return (
         <div className="space-y-3">
-            {/* Gornja traka: label + reset */}
+            {/* traka: label + reset */}
             <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-700">{label}</span>
                 <button
@@ -186,35 +166,85 @@ export default function RecipeFilterClick() {
                 </button>
             </div>
 
-            {/* Tabovi */}
+            {/* tabovi */}
             <div className="flex flex-wrap gap-2">
-                <Tab active={activeTab === ""} onClick={() => pickTab("")}>Sve</Tab>
-                <Tab active={activeTab === "slano"} onClick={() => pickTab("slano")}>Slano</Tab>
-                <Tab active={activeTab === "slatko"} onClick={() => pickTab("slatko")}>Slatko</Tab>
+                <Tab active={activeTab === ""} onClick={() => pickTab("")}>
+                    Sve
+                </Tab>
+                <Tab active={activeTab === "slano"} onClick={() => pickTab("slano")}>
+                    Slano
+                </Tab>
+                <Tab active={activeTab === "slatko"} onClick={() => pickTab("slatko")}>
+                    Slatko
+                </Tab>
             </div>
 
-            {/* Sadržaj: SLANO */}
+            {/* SLANO */}
             {activeTab === "slano" && (
-                <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                        {SLANO_SECTIONS.map((sec) => {
-                            const active = section === sec && (category === "slano" || activeTab === "slano");
-                            const caret =
-                                sec === "Rucak"
-                                    ? (openRucak ? <ChevronUp size={14} /> : <ChevronDown size={14} />)
-                                    : null;
-                            return (
-                                <Pill key={sec} active={active} onClick={() => clickSlanoSection(sec)} caret={caret}>
-                                    {sec}
-                                </Pill>
-                            );
-                        })}
-                    </div>
+                <SectionBlock
+                    cat="slano"
+                    sections={SECTIONS_BY_CATEGORY.slano}
+                    openMap={openMap}
+                    onClickSection={clickSection}
+                    onClickSub={clickSub}
+                    sectionActive={(sec) => category === "slano" && section === sec}
+                    subActive={(sub) => category === "slano" && subcategory === sub}
+                />
+            )}
 
-                    <AnimatePresence initial={false}>
-                        {openRucak && (
+            {/* SLATKO */}
+            {activeTab === "slatko" && (
+                <SectionBlock
+                    cat="slatko"
+                    sections={SECTIONS_BY_CATEGORY.slatko}
+                    openMap={openMap}
+                    onClickSection={clickSection}
+                    onClickSub={clickSub}
+                    sectionActive={(sec) => category === "slatko" && section === sec}
+                    subActive={(sub) => category === "slatko" && subcategory === sub}
+                />
+            )}
+
+            {/* aktivni čipovi */}
+            <div className="flex flex-wrap gap-2">
+                {category && <Chip onClear={() => setParam("category", "")}>category: {category}</Chip>}
+                {section && <Chip onClear={() => setParam("section", "")}>section: {section}</Chip>}
+                {subcategory && <Chip onClear={() => setParam("subcategory", "")}>subcategory: {subcategory}</Chip>}
+            </div>
+        </div>
+    );
+}
+
+/* ---------- Sekcija blok (lista sekcija + collapse za podsekcije) ---------- */
+function SectionBlock({
+    cat,
+    sections,
+    openMap,
+    onClickSection,
+    onClickSub,
+    sectionActive,
+    subActive,
+}) {
+    return (
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+                {sections.map((sec) => {
+                    const active = sectionActive(sec);
+                    const caret = hasSubs(sec) ? (openMap[sec] ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : null;
+                    return (
+                        <Pill key={sec} active={active} onClick={() => onClickSection(cat, sec)} caret={caret}>
+                            {sec}
+                        </Pill>
+                    );
+                })}
+            </div>
+
+            {/* collapses samo za sekcije sa subovima */}
+            {sections.map((sec) =>
+                hasSubs(sec) ? (
+                    <AnimatePresence key={sec} initial={false}>
+                        {openMap[sec] && (
                             <motion.div
-                                key="rucak"
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
@@ -222,11 +252,11 @@ export default function RecipeFilterClick() {
                                 className="overflow-hidden"
                             >
                                 <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-2">
-                                    {RUCAK_SUBS.map((sub) => (
+                                    {SUBS_BY_SECTION[sec].map((sub) => (
                                         <Pill
                                             key={sub}
-                                            active={subcategory === sub && (category === "slano" || activeTab === "slano")}
-                                            onClick={() => clickRucakSub(sub)}
+                                            active={subActive(sub)}
+                                            onClick={() => onClickSub(cat, sec, sub)}
                                             subtle
                                         >
                                             {sub}
@@ -236,89 +266,8 @@ export default function RecipeFilterClick() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
+                ) : null
             )}
-
-            {/* Sadržaj: SLATKO */}
-            {activeTab === "slatko" && (
-                <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                        {SLATKO_SECTIONS.map((sec) => {
-                            const active = section === sec && (category === "slatko" || activeTab === "slatko");
-                            const caret =
-                                sec === "Kolaci" ? (openKolaci ? <ChevronUp size={14} /> : <ChevronDown size={14} />)
-                                    : sec === "Torte" ? (openTorte ? <ChevronUp size={14} /> : <ChevronDown size={14} />)
-                                        : null;
-                            return (
-                                <Pill key={sec} active={active} onClick={() => clickSlatkoSection(sec)} caret={caret}>
-                                    {sec}
-                                </Pill>
-                            );
-                        })}
-                    </div>
-
-                    {/* Kolaci collapse */}
-                    <AnimatePresence initial={false}>
-                        {openKolaci && (
-                            <motion.div
-                                key="kolaci"
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-pink-200 bg-pink-50/70 p-2">
-                                    {KOLACI_SUBS.map((sub) => (
-                                        <Pill
-                                            key={sub}
-                                            active={subcategory === sub && (category === "slatko" || activeTab === "slatko")}
-                                            onClick={() => clickKolaciSub(sub)}
-                                            subtle
-                                        >
-                                            {sub}
-                                        </Pill>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Torte collapse */}
-                    <AnimatePresence initial={false}>
-                        {openTorte && (
-                            <motion.div
-                                key="torte"
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-pink-200 bg-pink-50/70 p-2">
-                                    {TORTE_SUBS.map((sub) => (
-                                        <Pill
-                                            key={sub}
-                                            active={subcategory === sub && (category === "slatko" || activeTab === "slatko")}
-                                            onClick={() => clickTorteSub(sub)}
-                                            subtle
-                                        >
-                                            {sub}
-                                        </Pill>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            )}
-
-            {/* Aktivni čipovi */}
-            <div className="flex flex-wrap gap-2">
-                {category && <Chip onClear={() => setParam("category", "")}>category: {category}</Chip>}
-                {section && <Chip onClear={() => setParam("section", "")}>section: {section}</Chip>}
-                {subcategory && <Chip onClear={() => setParam("subcategory", "")}>subcategory: {subcategory}</Chip>}
-            </div>
         </div>
     );
 }

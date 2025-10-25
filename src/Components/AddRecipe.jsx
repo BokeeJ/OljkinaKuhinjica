@@ -1,34 +1,6 @@
 import React, { useMemo, useState } from "react";
 import axios from "../api";
-
-/* ===== Taksonomija ===== */
-const SECTIONS_BY_CATEGORY = {
-    slano: ["Rucak", "Dorucak", "Vecera", "Predjela", "Peciva", "Posno", "Zimnica"],
-    slatko: ["Kolaci", "Torte", "Dezerti", "Peciva", "Zimnica"],
-};
-
-const SUBS_BY_SECTION = {
-    // SLANO
-    Rucak: ["Supe i čorbe", "Meso", "Riba", "Povrce", "Paste i spagete"],
-    // SLATKO
-    Kolaci: [
-        "cokoladni",
-        "vocni",
-        "kremasti",
-        "biskvitni",
-        "posni kolaci",
-        "sitni kolaci i keks",
-    ],
-    Torte: [
-        "klasicne",
-        "cokoladne",
-        "vocne",
-        "brze torte bez pecenja",
-        "posne torte",
-        "biskviti za torte",
-    ],
-    // Ostale sekcije NEMAJU podkategorije → subcategory = section
-};
+import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
 
 const inputBase =
     "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
@@ -53,7 +25,6 @@ export default function AddRecipe() {
         () => SECTIONS_BY_CATEGORY[form.category] || [],
         [form.category]
     );
-
     const subs = useMemo(
         () => SUBS_BY_SECTION[form.section] || [],
         [form.section]
@@ -62,14 +33,8 @@ export default function AddRecipe() {
     const onChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => {
-            if (name === "category") {
-                // promena taba resetuje sekciju i sub
-                return { ...prev, category: value, section: "", subcategory: "" };
-            }
-            if (name === "section") {
-                // ako nova sekcija nema subove — subcategory čist, biće auto=section na submit
-                return { ...prev, section: value, subcategory: "" };
-            }
+            if (name === "category") return { ...prev, category: value, section: "", subcategory: "" };
+            if (name === "section") return { ...prev, section: value, subcategory: "" };
             return { ...prev, [name]: value };
         });
     };
@@ -79,6 +44,7 @@ export default function AddRecipe() {
         setForm((p) => ({ ...p, coverImage: file || null }));
         setCoverPreview(file ? URL.createObjectURL(file) : "");
     };
+
     const onGallery = (e) =>
         setForm((p) => ({ ...p, gallery: Array.from(e.target.files || []) }));
 
@@ -89,43 +55,37 @@ export default function AddRecipe() {
         if (!form.coverImage) return alert("Dodaj naslovnu sliku.");
         if (!form.section) return alert("Izaberi sekciju.");
 
-        // Ako sekcija ima podkategorije → obavezno izaberi jednu.
-        // Ako nema → subcategory = section (kompatibilnost sa backend validacijom).
         const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
-        const subLabel = requiresSub ? form.subcategory : form.section;
-        if (requiresSub && !subLabel) {
-            return alert("Izaberi podkategoriju.");
-        }
+        if (requiresSub && !form.subcategory) return alert("Izaberi podkategoriju.");
 
         const fd = new FormData();
         fd.append("title", form.title.trim());
-        fd.append("category", String(form.category || "").toLowerCase()); // slano|slatko
-        fd.append("section", form.section);                                // npr. Rucak / Kolaci
-        fd.append("subcategory", subLabel);                                // vidi logiku gore
+        fd.append("category", String(form.category || "").toLowerCase()); // 'slano' | 'slatko'
+        fd.append("section", form.section);                                // npr. 'Rucak'
+        if (requiresSub) fd.append("subcategory", form.subcategory);       // samo kada postoji
+
         fd.append("preparationTime", form.preparationTime);
         fd.append("instructions", form.instructions);
         fd.append("note", form.note);
         fd.append("coverImage", form.coverImage);
-        // sastojci po redu
+
         (form.ingredients || "")
             .split("\n")
             .map((s) => s.trim())
             .filter(Boolean)
             .forEach((ing) => fd.append("ingredients", ing));
-        // galerija
+
         (form.gallery || []).forEach((file) => fd.append("gallery", file));
 
         try {
-            // ako tvoja axios instanca već ima baseURL '/api', može biti '/recipes'
             const { data } = await axios.post("/api/recipes", fd);
             alert("Recept dodat!");
             const newId = data?._id || data?.id;
             if (newId) window.open(`/recept/${newId}`, "_blank", "noopener");
 
-            // reset
             setForm({
                 title: "",
-                category: form.category, // ostavi izabrani tab
+                category: form.category, // zadrži aktivni tab
                 section: "",
                 subcategory: "",
                 preparationTime: "",
@@ -150,17 +110,26 @@ export default function AddRecipe() {
 
                     {/* Naslov */}
                     <label className={labelBase} htmlFor="title">Naslov</label>
-                    <input id="title" name="title" value={form.title} onChange={onChange}
-                        placeholder="npr. Kolač sa jabukama" className={inputBase} required />
+                    <input
+                        id="title"
+                        name="title"
+                        value={form.title}
+                        onChange={onChange}
+                        placeholder="npr. Kolač sa jabukama"
+                        className={inputBase}
+                        required
+                    />
 
                     {/* Tabaovi: slano / slatko */}
                     <div className="mt-4 flex items-center gap-2">
                         {["slano", "slatko"].map((cat) => (
-                            <button key={cat} type="button"
+                            <button
+                                key={cat}
+                                type="button"
                                 onClick={() => onChange({ target: { name: "category", value: cat } })}
                                 className={`px-4 py-2 rounded-xl text-sm shadow-sm ${form.category === cat
-                                        ? "bg-emerald-600 text-white"
-                                        : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-white/90 border border-zinc-300 text-zinc-800 hover:bg-white"
                                     }`}
                             >
                                 {cat.toUpperCase()}
@@ -168,11 +137,18 @@ export default function AddRecipe() {
                         ))}
                     </div>
 
-                    {/* Sekcija */}
+                    {/* Sekcija / Podkategorija */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
                             <label className={labelBase} htmlFor="section">Sekcija</label>
-                            <select id="section" name="section" value={form.section} onChange={onChange} required className={inputBase}>
+                            <select
+                                id="section"
+                                name="section"
+                                value={form.section}
+                                onChange={onChange}
+                                required
+                                className={inputBase}
+                            >
                                 <option value="">Izaberi…</option>
                                 {sections.map((sec) => (
                                     <option key={sec} value={sec}>{sec}</option>
@@ -180,28 +156,42 @@ export default function AddRecipe() {
                             </select>
                         </div>
 
-                        {/* Podkategorija: ako sekcija ima listu, tražimo izbor; ako nema, prikaz hint-a */}
                         <div>
                             <label className={labelBase} htmlFor="subcategory">Podkategorija</label>
                             {subs.length > 0 ? (
-                                <select id="subcategory" name="subcategory" value={form.subcategory} onChange={onChange} required className={inputBase}>
+                                <select
+                                    id="subcategory"
+                                    name="subcategory"
+                                    value={form.subcategory}
+                                    onChange={onChange}
+                                    required
+                                    className={inputBase}
+                                >
                                     <option value="">Izaberi…</option>
-                                    {subs.map((s) => (<option key={s} value={s}>{s}</option>))}
+                                    {subs.map((s) => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             ) : (
-                                <input disabled className={inputBase}
-                                    value={form.section ? `Nema podkategorije — upisaćemo: ${form.section}` : ""}
-                                    placeholder="(izaberi sekciju)" />
+                                <input
+                                    disabled
+                                    className={inputBase}
+                                    value={form.section ? "Ova sekcija nema podkategorije." : ""}
+                                    placeholder="(izaberi sekciju)"
+                                />
                             )}
                         </div>
                     </div>
 
-                    {/* Cover + Galerija */}
+                    {/* Cover / Galerija */}
                     <div className="mt-4 grid grid-cols-1 gap-4">
                         <div>
                             <label className={labelBase}>Naslovna slika (cover)</label>
-                            <input type="file" accept="image/*" onChange={onCover}
-                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`} required />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={onCover}
+                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
+                                required
+                            />
                             {coverPreview && (
                                 <div className="mt-3 rounded-xl border overflow-hidden">
                                     <img src={coverPreview} alt="Preview" className="w-full h-44 object-cover" />
@@ -211,8 +201,13 @@ export default function AddRecipe() {
 
                         <div>
                             <label className={labelBase}>Galerija (slike/video)</label>
-                            <input type="file" accept="image/*,video/*" multiple onChange={onGallery}
-                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`} />
+                            <input
+                                type="file"
+                                accept="image/*,video/*"
+                                multiple
+                                onChange={onGallery}
+                                className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
+                            />
                         </div>
                     </div>
                 </div>
@@ -221,33 +216,63 @@ export default function AddRecipe() {
                 <div className="rounded-3xl bg-white/70 backdrop-blur border border-zinc-200 shadow p-5 space-y-4">
                     <div>
                         <label className={labelBase} htmlFor="preparationTime">Vreme pripreme</label>
-                        <input id="preparationTime" name="preparationTime" value={form.preparationTime} onChange={onChange}
-                            placeholder="npr. 45 minuta" className={inputBase} />
+                        <input
+                            id="preparationTime"
+                            name="preparationTime"
+                            value={form.preparationTime}
+                            onChange={onChange}
+                            placeholder="npr. 45 minuta"
+                            className={inputBase}
+                        />
                     </div>
 
                     <div>
                         <label className={labelBase} htmlFor="instructions">Uputstvo</label>
-                        <textarea id="instructions" name="instructions" rows={8} value={form.instructions} onChange={onChange}
-                            placeholder="Korak 1...&#10;Korak 2..." className={`${inputBase} min-h-[180px]`} required />
+                        <textarea
+                            id="instructions"
+                            name="instructions"
+                            rows={8}
+                            value={form.instructions}
+                            onChange={onChange}
+                            placeholder="Korak 1...&#10;Korak 2..."
+                            className={`${inputBase} min-h-[180px]`}
+                            required
+                        />
                     </div>
 
                     <div>
                         <label className={labelBase} htmlFor="ingredients">Sastojci (po redu)</label>
-                        <textarea id="ingredients" name="ingredients" rows={6} value={form.ingredients} onChange={onChange}
+                        <textarea
+                            id="ingredients"
+                            name="ingredients"
+                            rows={6}
+                            value={form.ingredients}
+                            onChange={onChange}
                             placeholder={"npr.\n3 jaja\n200 g brašna\n1 čaša jogurta"}
-                            className={`${inputBase} font-mono`} required />
+                            className={`${inputBase} font-mono`}
+                            required
+                        />
                     </div>
 
                     <div>
                         <label className={labelBase} htmlFor="note">Napomena (opciono)</label>
-                        <textarea id="note" name="note" rows={4} value={form.note} onChange={onChange}
-                            placeholder="Npr. koristila sam čokoladu sa 70% kakaa" className={`${inputBase} min-h-[120px]`} />
+                        <textarea
+                            id="note"
+                            name="note"
+                            rows={4}
+                            value={form.note}
+                            onChange={onChange}
+                            placeholder="Npr. koristila sam čokoladu sa 70% kakaa"
+                            className={`${inputBase} min-h-[120px]`}
+                        />
                     </div>
                 </div>
 
                 <div className="flex justify-end">
-                    <button type="submit"
-                        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow">
+                    <button
+                        type="submit"
+                        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow"
+                    >
                         ✅ Dodaj recept
                     </button>
                 </div>

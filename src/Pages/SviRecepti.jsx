@@ -4,11 +4,17 @@ import axios from "../api";
 import { motion } from "framer-motion";
 import { Star, Flame, Search } from "lucide-react";
 import RecipeFilterClick from "../Components/RecipeFilterClick";
+import { normalizeSectionFE } from "../constants/taxonomy";
 
 /* Helpers */
 const getLSArray = (key) => {
-    try { const raw = localStorage.getItem(key); const v = raw ? JSON.parse(raw) : []; return Array.isArray(v) ? v : []; }
-    catch { return []; }
+    try {
+        const raw = localStorage.getItem(key);
+        const v = raw ? JSON.parse(raw) : [];
+        return Array.isArray(v) ? v : [];
+    } catch {
+        return [];
+    }
 };
 const cdn = (url, w = 0) => {
     if (!url) return url;
@@ -41,7 +47,8 @@ export default function SviRecepti() {
     const page = Math.max(1, Number(sp.get("page") || 1));
     const q = sp.get("q") || "";
     const category = (sp.get("category") || "").toLowerCase();
-    const section = sp.get("section") || "";
+    // Normalizuj section iz URL-a (pecivo → Pite i peciva, dorucak → Dorucak/Vecera…)
+    const section = normalizeSectionFE(sp.get("section") || "");
     const subcategory = sp.get("subcategory") || "";
 
     /* Search (debounce) */
@@ -77,19 +84,19 @@ export default function SviRecepti() {
     /* Fetch */
     useEffect(() => {
         let cancelled = false;
-        setLoading(true); setErr("");
+        setLoading(true);
+        setErr("");
 
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", String(perPage));
         if (q.trim()) params.set("q", q.trim());
-        if (category) params.set("category", category);
-        if (section) params.set("section", section);
+        if (category) params.set("category", category);         // slano|slatko
+        if (section) params.set("section", section);            // kanonski string (npr. "Pite i peciva")
         if (subcategory) params.set("subcategory", subcategory);
 
         (async () => {
             try {
-                // ako axios.baseURL već sadrži /api → promeni na '/recipes/page'
                 const { data } = await axios.get(`/api/recipes/page?${params.toString()}`);
                 if (!cancelled) {
                     setItems(Array.isArray(data.items) ? data.items : []);
@@ -98,7 +105,9 @@ export default function SviRecepti() {
                 }
             } catch (e) {
                 if (!cancelled) {
-                    setItems([]); setTotalPages(0); setTotal(0);
+                    setItems([]);
+                    setTotalPages(0);
+                    setTotal(0);
                     setErr(e?.response?.data?.error || "Greška pri učitavanju recepata.");
                 }
             } finally {
@@ -114,22 +123,59 @@ export default function SviRecepti() {
         if (likedSet.has(id)) return alert("Već si lajkovao ovaj recept!");
         try {
             const { data } = await axios.post(`/api/recipes/${id}/like`);
-            setItems(prev => prev.map(r => r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r));
+            setItems((prev) =>
+                prev.map((r) => (r._id === id ? { ...r, likes: data?.likes ?? (r.likes || 0) } : r))
+            );
             const updated = [...likedRecipes, id];
             setLikedRecipes(updated);
             localStorage.setItem("liked_recipes", JSON.stringify(updated));
-        } catch (err) { console.error("Greška pri lajkovanju:", err); }
+        } catch (err) {
+            console.error("Greška pri lajkovanju:", err);
+        }
     };
+
     const handleFavorite = (id) => {
-        const updated = favSet.has(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+        const updated = favSet.has(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
         setFavorites(updated);
         localStorage.setItem(`favorites_${userId}`, JSON.stringify(updated));
     };
+
     const handlePageChange = (nextPage) => {
         const next = new URLSearchParams(sp);
         next.set("page", String(nextPage));
         setSp(next, { replace: false });
         window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    /* Filter callbacks (klik filter) */
+    // onPick(cat, section, subcategory)
+    const handleFilterPick = (cat, sec, sub = "") => {
+        const prevCat = sp.get("category") || "";
+        const prevSec = sp.get("section") || "";
+        const prevSub = sp.get("subcategory") || "";
+
+        const nextCat = (cat || "").toLowerCase();
+        const nextSec = sec || "";
+        const nextSub = sub || "";
+
+        if (prevCat === nextCat && prevSec === nextSec && prevSub === nextSub) return;
+
+        const copy = new URLSearchParams(sp);
+        nextCat ? copy.set("category", nextCat) : copy.delete("category");
+        nextSec ? copy.set("section", nextSec) : copy.delete("section");
+        nextSub ? copy.set("subcategory", nextSub) : copy.delete("subcategory");
+        copy.set("page", "1");
+        setSp(copy, { replace: false });
+    };
+
+    const resetFilters = () => {
+        const hadAny = sp.has("category") || sp.has("section") || sp.has("subcategory");
+        const copy = new URLSearchParams(sp);
+        copy.delete("category");
+        copy.delete("section");
+        copy.delete("subcategory");
+        if (hadAny) copy.set("page", "1");
+        setSp(copy, { replace: false });
     };
 
     /* UI */
@@ -170,101 +216,119 @@ export default function SviRecepti() {
 
                 {/* Filter kartica (SLANO + SLATKO, klik) */}
                 <div className="rounded-3xl border border-zinc-200 bg-white/70 backdrop-blur p-3 md:p-4 shadow-sm">
-                    <RecipeFilterClick />
+                    <RecipeFilterClick
+                        onPick={handleFilterPick}
+                        onReset={resetFilters}
+                        current={{ category, section, subcategory }}
+                    />
                 </div>
+
+                {/* Error state */}
+                {!!err && (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3">
+                        {err}
+                    </div>
+                )}
 
                 {/* Grid recepata */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {loading && (
+                    {loading &&
                         Array.from({ length: 10 }).map((_, i) => (
-                            <div key={i} className="rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur overflow-hidden shadow-sm">
+                            <div
+                                key={i}
+                                className="rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur overflow-hidden shadow-sm"
+                            >
                                 <div className="h-40 bg-zinc-200/60 animate-pulse" />
                                 <div className="p-3 space-y-2">
                                     <div className="h-4 bg-zinc-200/80 rounded" />
                                     <div className="h-3 bg-zinc-200/60 rounded w-1/2" />
                                 </div>
                             </div>
-                        ))
-                    )}
+                        ))}
 
-                    {!loading && items.map((r) => (
-                        <motion.article
-                            key={r._id}
-                            initial={{ opacity: 0, y: 12 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.25 }}
-                            className="group rounded-2xl border border-zinc-200 bg-white/80 backdrop-blur overflow-hidden shadow-sm hover:shadow-md transition"
-                        >
-                            <Link to={`/recept/${r._id}${location.search}`} state={{ from: location.pathname + location.search }}>
-                                <div className="relative">
-                                    {r?.coverImage?.url && (
-                                        <img
-                                            src={cdn(r.coverImage.url, 640)}
-                                            alt={r.title}
-                                            className="w-full h-40 md:h-44 object-cover"
-                                            loading="lazy"
-                                        />
-                                    )}
-                                    {Number.isFinite(r.preparationTime) && (
-                                        <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
-                                            ⏱ {r.preparationTime} min
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="p-3">
-                                    <h3 className="text-zinc-900 font-semibold text-sm line-clamp-2 group-hover:text-emerald-700 transition">
-                                        {r.title}
-                                    </h3>
-                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                        {r.category && (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 border border-zinc-200">
-                                                {String(r.category).toUpperCase()}
-                                            </span>
+                    {!loading &&
+                        items.map((r) => (
+                            <motion.article
+                                key={r._id}
+                                initial={{ opacity: 0, y: 12 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.25 }}
+                                className="group rounded-2xl border border-zinc-200 bg-white/80 backdrop-blur overflow-hidden shadow-sm hover:shadow-md transition"
+                            >
+                                <Link
+                                    to={`/recept/${r._id}${location.search}`}
+                                    state={{ from: location.pathname + location.search }}
+                                >
+                                    <div className="relative">
+                                        {r?.coverImage?.url && (
+                                            <img
+                                                src={cdn(r.coverImage.url, 640)}
+                                                alt={r.title}
+                                                className="w-full h-40 md:h-44 object-cover"
+                                                loading="lazy"
+                                            />
                                         )}
-                                        {r.section && (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                {r.section}
-                                            </span>
-                                        )}
-                                        {r.subcategory && (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-pink-50 text-pink-700 border border-pink-200">
-                                                {r.subcategory}
+                                        {/* preparationTime u bazi je string → prikaži ako postoji */}
+                                        {r.preparationTime && String(r.preparationTime).trim() && (
+                                            <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
+                                                ⏱ {r.preparationTime}
                                             </span>
                                         )}
                                     </div>
-                                </div>
-                            </Link>
+                                    <div className="p-3">
+                                        <h3 className="text-zinc-900 font-semibold text-sm line-clamp-2 group-hover:text-emerald-700 transition">
+                                            {r.title}
+                                        </h3>
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {r.category && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 border border-zinc-200">
+                                                    {String(r.category).toUpperCase()}
+                                                </span>
+                                            )}
+                                            {r.section && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    {r.section}
+                                                </span>
+                                            )}
+                                            {r.subcategory && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-pink-50 text-pink-700 border border-pink-200">
+                                                    {r.subcategory}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Link>
 
-                            <div className="px-3 pb-3 flex items-center justify-between">
-                                <span className="text-[10px] text-zinc-500">
-                                    {r.createdAt ? new Date(r.createdAt).toLocaleDateString("sr-RS") : ""}
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                    <button
-                                        onClick={() => handleLike(r._id)}
-                                        disabled={likedSet.has(r._id)}
-                                        className={`px-2 py-1 rounded-full text-[11px] shadow-sm ${likedSet.has(r._id)
-                                                ? "bg-zinc-300 text-white cursor-not-allowed"
-                                                : "bg-emerald-600 text-white hover:bg-emerald-700"
-                                            }`}
-                                    >
-                                        👍 {r.likes || 0}
-                                    </button>
-                                    <button
-                                        onClick={() => handleFavorite(r._id)}
-                                        className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
-                                                ? "bg-emerald-600 text-white border-emerald-700"
-                                                : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
-                                            }`}
-                                        aria-label="Sačuvaj u omiljene"
-                                    >
-                                        <Star className="h-3.5 w-3.5" />
-                                    </button>
+                                <div className="px-3 pb-3 flex items-center justify-between">
+                                    <span className="text-[10px] text-zinc-500">
+                                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString("sr-RS") : ""}
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => handleLike(r._id)}
+                                            disabled={likedSet.has(r._id)}
+                                            className={`px-2 py-1 rounded-full text-[11px] shadow-sm ${likedSet.has(r._id)
+                                                    ? "bg-zinc-300 text-white cursor-not-allowed"
+                                                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                }`}
+                                        >
+                                            👍 {r.likes || 0}
+                                        </button>
+                                        <button
+                                            onClick={() => handleFavorite(r._id)}
+                                            className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
+                                                    ? "bg-emerald-600 text-white border-emerald-700"
+                                                    : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
+                                                }`}
+                                            aria-label="Sačuvaj u omiljene"
+                                        >
+                                            <Star className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.article>
-                    ))}
+                            </motion.article>
+                        ))}
                 </div>
 
                 {!loading && items.length === 0 && (
@@ -291,7 +355,9 @@ export default function SviRecepti() {
 
                             {makePageList(totalPages, page, 9).map((it, idx) =>
                                 it === "…" ? (
-                                    <span key={`dots-${idx}`} className="px-2 py-1.5 text-sm text-zinc-400 select-none">…</span>
+                                    <span key={`dots-${idx}`} className="px-2 py-1.5 text-sm text-zinc-400 select-none">
+                                        …
+                                    </span>
                                 ) : (
                                     <button
                                         key={it}

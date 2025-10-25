@@ -1,58 +1,54 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
+import {
+    SECTIONS_BY_CATEGORY,
+    SUBS_BY_SECTION,
+} from "../constants/taxonomy";
 
-/** ===================== KONFIG ===================== 
- * SLANO:
- *  - Dorucak/Vecera
- *  - Predjela
- *  - Rucak
- *      • Supe i čorbe
- *      • Kuvana jela
- *      • Jela iz rerne
- *      • Paste
- *  - Hlebovi i peciva
- *  - Posno
- *  - Zimnica
- * SLATKO: (za sada samo dve stavke – možeš proširiti kasnije)
+/**
+ * Helper: da li data sekcija ima podkategorije
  */
-const SLANO_GROUPS = [
-    { section: "Dorucak/Vecera", items: ["Dorucak/Vecera"] },
-    { section: "Predjela", items: ["Predjela"] },
-    { section: "Rucak", items: ["Supe i čorbe", "Kuvana jela", "Jela iz rerne", "Paste"] },
-    { section: "Hlebovi i peciva", items: ["Hlebovi i peciva"] },
-    { section: "Posno", items: ["Posno"] },
-    { section: "Zimnica", items: ["Zimnica"] },
-];
+const hasSubs = (section) =>
+    Array.isArray(SUBS_BY_SECTION[section]) && SUBS_BY_SECTION[section].length > 0;
 
-const SLATKO_LIST = ["Kolači", "Torte"]; // proširi po potrebi
+/** Badge stil za labelu */
+const Badge = ({ children, tone = "zinc" }) => {
+    const tones = {
+        zinc: "bg-zinc-100 text-zinc-700 border-zinc-200",
+        emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        pink: "bg-pink-50 text-pink-700 border-pink-200",
+    };
+    return (
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border ${tones[tone] || tones.zinc}`}>
+            {children}
+        </span>
+    );
+};
 
-// za brzo prepoznavanje da li sub pripada Rucku
-const RUCKAK_SUBS = new Set(["Supe i čorbe", "Kuvana jela", "Jela iz rerne", "Paste"]);
-
-/* ================================================== */
-
-export default function RecipeFilter() {
+export default function RecipeFilterClick() {
     const [sp, setSp] = useSearchParams();
 
-    // čitamo trenutne vrednosti iz URL-a da label prikazuje stanje
-    const category = (sp.get("category") || "").toLowerCase();
+    const category = (sp.get("category") || "").toLowerCase(); // "slano" | "slatko" | ""
     const section = sp.get("section") || "";
     const subcategory = sp.get("subcategory") || "";
 
-    const label =
-        category === "slano"
-            ? section && subcategory
-                ? `SLANO • ${section} • ${subcategory}`
-                : section
-                    ? `SLANO • ${section}`
-                    : "🧭 Izaberi (SLANO)"
-            : category === "slatko"
-                ? subcategory
-                    ? `SLATKO • ${subcategory}`
-                    : "🧭 Izaberi (SLATKO)"
-                : "🧭 Izaberi kategoriju";
+    const label = useMemo(() => {
+        if (!category) return "🧭 Izaberi kategoriju";
+        if (category === "slano") {
+            if (section && subcategory) return `SLANO • ${section} • ${subcategory}`;
+            if (section) return `SLANO • ${section}`;
+            return "SLANO";
+        }
+        if (category === "slatko") {
+            if (section && subcategory) return `SLATKO • ${section} • ${subcategory}`;
+            if (section) return `SLATKO • ${section}`;
+            if (subcategory) return `SLATKO • ${subcategory}`;
+            return "SLATKO";
+        }
+        return "🧭 Izaberi kategoriju";
+    }, [category, section, subcategory]);
 
     const handleReset = () => {
         const next = new URLSearchParams(sp);
@@ -63,53 +59,48 @@ export default function RecipeFilter() {
         setSp(next, { replace: true });
     };
 
-    // univerzalni setter-i
     const setCategory = (cat) => {
         const next = new URLSearchParams(sp);
         next.set("category", cat);
-        // reset grana
         next.delete("section");
         next.delete("subcategory");
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
+    // set sekcija bez seta subcategory: sub se bira posebno ako postoji
     const setSection = (sec) => {
         const next = new URLSearchParams(sp);
-        next.set("category", "slano");
-        next.set("section", sec);
-        next.delete("subcategory");
+        if (SECTIONS_BY_CATEGORY.slano.includes(sec)) {
+            next.set("category", "slano");
+            next.set("section", sec);
+            if (!hasSubs(sec)) next.delete("subcategory");
+        } else if (SECTIONS_BY_CATEGORY.slatko.includes(sec)) {
+            next.set("category", "slatko");
+            next.set("section", sec);
+            if (!hasSubs(sec)) next.delete("subcategory");
+        } else {
+            // fallback
+            next.set("section", sec);
+            next.delete("subcategory");
+        }
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
-    // klik na “leaf”:
-    // - SLANO: ako je leaf iz Ručka → section=Rucak & subcategory=leaf
-    //          ako je leaf samostalan (npr. Predjela) → section=Predjela (i nema subcategory)
-    // - SLATKO: category=slatko & subcategory=leaf
-    const handlePick = (cat, leaf) => {
+    const setSub = (sec, sub) => {
         const next = new URLSearchParams(sp);
-        if (cat === "slano") {
-            next.set("category", "slano");
-            if (RUCKAK_SUBS.has(leaf)) {
-                next.set("section", "Rucak");
-                next.set("subcategory", leaf);
-            } else {
-                next.set("section", leaf);
-                next.delete("subcategory");
-            }
-        } else if (cat === "slatko") {
-            next.set("category", "slatko");
-            next.delete("section");
-            next.set("subcategory", leaf);
-        }
+        // uvek postavi i category na osnovu sekcije
+        if (SECTIONS_BY_CATEGORY.slano.includes(sec)) next.set("category", "slano");
+        if (SECTIONS_BY_CATEGORY.slatko.includes(sec)) next.set("category", "slatko");
+        next.set("section", sec);
+        next.set("subcategory", sub);
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
     return (
         <div className="relative flex items-center gap-3 text-zinc-800">
-            {/* Reset */}
             <button
                 type="button"
                 onClick={handleReset}
@@ -118,45 +109,42 @@ export default function RecipeFilter() {
                 ✖ Reset
             </button>
 
-            <RecipeFilterDesktop
+            <FilterDesktop
                 label={label}
-                onPick={handlePick}
-                onSetCategory={setCategory}
-                onSetSection={setSection}
+                setCategory={setCategory}
+                setSection={setSection}
+                setSub={setSub}
             />
 
-            <RecipeFilterMobile
+            <FilterMobile
                 label={label}
-                onPick={handlePick}
-                onSetCategory={setCategory}
+                setCategory={setCategory}
+                setSection={setSection}
+                setSub={setSub}
             />
         </div>
     );
 }
 
-/* ========================= DESKTOP (hover/click mega-meni) ========================= */
-function RecipeFilterDesktop({ label, onPick, onSetCategory, onSetSection }) {
+/* ========================= DESKTOP (CLICK ONLY) ========================= */
+function FilterDesktop({ label, setCategory, setSection, setSub }) {
     const [open, setOpen] = useState(false);
-    const [path, setPath] = useState([]); // npr. ["slano"] ili ["slatko"]
+    const [root, setRoot] = useState(""); // "slano" | "slatko"
     const wrapRef = useRef(null);
-    const closeTimer = useRef(null);
     const reduceMotion = useReducedMotion();
 
-    // korenski tabovi
-    const rootCats = ["slano", "slatko"];
-
-    // zatvaranje klikom van + ESC
+    // klik van + ESC
     useEffect(() => {
         const onDocClick = (e) => {
             if (wrapRef.current && !wrapRef.current.contains(e.target)) {
                 setOpen(false);
-                setPath([]);
+                setRoot("");
             }
         };
         const onEsc = (e) => {
             if (e.key === "Escape") {
                 setOpen(false);
-                setPath([]);
+                setRoot("");
             }
         };
         if (open) {
@@ -169,102 +157,59 @@ function RecipeFilterDesktop({ label, onPick, onSetCategory, onSetSection }) {
         };
     }, [open]);
 
-    const scheduleClose = () => {
-        clearTimeout(closeTimer.current);
-        closeTimer.current = setTimeout(() => {
-            setOpen(false);
-            setPath([]);
-        }, 160);
-    };
-    const cancelClose = () => clearTimeout(closeTimer.current);
+    const onTrigger = () => setOpen((v) => !v);
 
-    const handleRootEnter = (cat) => setPath([cat]);
-    const handleRootClick = (cat) => {
-        if (!open) setOpen(true);
-        setPath([cat]);
-        onSetCategory(cat); // odmah postavi category u URL-u
-    };
-
-    const handleLeafClick = (cat, leaf) => {
-        // SLANO: ako klikneš "Rucak" kao sekciju, prvo samo setSection,
-        // a potom će se prikazati njegovi leaf-ovi (Supe, Kuvana, ...).
-        if (cat === "slano" && leaf === "Rucak") {
-            onSetSection("Rucak");
-            setPath(["slano"]); // ostani na slano panelu
-            return;
+    const renderRight = () => {
+        if (!root) {
+            return <div className="px-2 py-4 text-sm text-zinc-500">Izaberi kategoriju…</div>;
         }
-        onPick?.(cat, leaf);
-        setOpen(false);
-        setPath([]);
-    };
-
-    // sadržaj za desni panel u zavisnosti od odabrane grane
-    const renderRightPanel = () => {
-        if (!path[0]) {
-            return <div className="px-2 py-4 text-sm text-zinc-500">Pređi mišem preko kategorije…</div>;
-        }
-
-        if (path[0] === "slano") {
-            return (
-                <div className="space-y-3">
-                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                        {SLANO_GROUPS.map((g) => (
-                            <div key={g.section} className="rounded-lg border bg-white p-2">
+        const sections = SECTIONS_BY_CATEGORY[root] || [];
+        return (
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {sections.map((sec) => {
+                    const subs = SUBS_BY_SECTION[sec] || [];
+                    return (
+                        <div key={sec} className="rounded-xl border bg-white p-2">
+                            <div className="flex items-center justify-between">
                                 <button
-                                    onClick={() =>
-                                        g.items.length > 1
-                                            ? handleLeafClick("slano", "Rucak") // otvori Rucak (setSection)
-                                            : handleLeafClick("slano", g.section)
-                                    }
-                                    className="w-full rounded-md px-2 py-1 text-left text-sm font-semibold hover:bg-emerald-50"
+                                    onClick={() => (subs.length ? setSection(sec) : setSection(sec))}
+                                    className="rounded-md px-2 py-1 text-left text-sm font-semibold hover:bg-emerald-50"
                                 >
-                                    {g.section}
+                                    {sec}
                                 </button>
-                                {g.items.length > 1 && (
-                                    <div className="mt-1 grid gap-1">
-                                        {g.items.map((sub) => (
-                                            <button
-                                                key={sub}
-                                                onClick={() => handleLeafClick("slano", sub)}
-                                                className="rounded px-2 py-1 text-left text-sm hover:bg-emerald-50"
-                                            >
-                                                {sub}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <Badge tone={subs.length ? "emerald" : "zinc"}>
+                                    {subs.length ? `${subs.length} podkategorija` : "nema podkategorija"}
+                                </Badge>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        if (path[0] === "slatko") {
-            return (
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                    {SLATKO_LIST.map((sub) => (
-                        <button
-                            key={sub}
-                            onClick={() => handleLeafClick("slatko", sub)}
-                            className="rounded-lg px-3 py-2 text-left text-sm ring-1 ring-transparent transition hover:bg-emerald-50 hover:ring-emerald-400"
-                        >
-                            {sub}
-                        </button>
-                    ))}
-                </div>
-            );
-        }
-
-        return null;
+                            {subs.length > 0 && (
+                                <div className="mt-2 grid gap-1">
+                                    {subs.map((s) => (
+                                        <button
+                                            key={s}
+                                            onClick={() => {
+                                                setSub(sec, s);
+                                                setOpen(false);
+                                                setRoot("");
+                                            }}
+                                            className="rounded px-2 py-1 text-left text-sm hover:bg-emerald-50"
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
         <div ref={wrapRef} className="relative hidden md:block">
             <button
                 type="button"
-                onMouseEnter={() => setOpen(true)}
-                onClick={() => setOpen((v) => !v)}
+                onClick={onTrigger} // ← samo klik, bez hovera
                 className="h-10 rounded-full bg-yellow-500 px-4 text-sm font-semibold text-white shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/60"
                 aria-haspopup="true"
                 aria-expanded={open}
@@ -275,46 +220,40 @@ function RecipeFilterDesktop({ label, onPick, onSetCategory, onSetSection }) {
             <AnimatePresence>
                 {open && (
                     <motion.div
-                        initial={{ opacity: 0, y: useReducedMotion ? 0 : -8 }}
+                        initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: useReducedMotion ? 0 : -8 }}
+                        exit={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
                         transition={{ duration: 0.18 }}
-                        onMouseLeave={scheduleClose}
-                        onMouseEnter={cancelClose}
                         className="absolute left-1/2 top-14 z-50 -translate-x-1/2"
                     >
-                        <div className="w-[720px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
+                        <div className="w-[760px] max-w-[92vw] rounded-2xl border border-zinc-200/70 bg-white/90 p-[1.5px] backdrop-blur shadow-xl">
                             <div className="rounded-2xl bg-white/95 p-3">
-                                <Trail path={path} />
+                                {/* koren tabovi */}
+                                <div className="mb-3 grid grid-cols-2 gap-2">
+                                    {["slano", "slatko"].map((cat) => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => {
+                                                setRoot(cat);
+                                                setCategory(cat);
+                                            }}
+                                            className={`rounded-xl px-4 py-2 text-sm font-semibold border shadow-sm ${root === cat
+                                                    ? "bg-emerald-600 text-white border-emerald-700"
+                                                    : "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50"
+                                                }`}
+                                        >
+                                            {cat.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
 
-                                <div className="mt-2 grid grid-cols-[220px_1fr] gap-3">
-                                    {/* Koren (SLANO / SLATKO) */}
-                                    <div className="overflow-hidden rounded-xl border bg-white">
-                                        {rootCats.map((cat) => {
-                                            const active = path[0] === cat;
-                                            return (
-                                                <button
-                                                    key={cat}
-                                                    onMouseEnter={() => handleRootEnter(cat)}
-                                                    onClick={() => handleRootClick(cat)}
-                                                    className={[
-                                                        "relative w-full px-4 py-2 text-left text-sm transition",
-                                                        active ? "bg-emerald-50 font-semibold" : "hover:bg-zinc-50",
-                                                    ].join(" ")}
-                                                >
-                                                    {active && (
-                                                        <span className="absolute inset-y-0 left-0 w-1 rounded-r bg-emerald-400" />
-                                                    )}
-                                                    {cap(cat)}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                {/* desni panel */}
+                                <div className="rounded-xl border bg-white p-3">
+                                    {renderRight()}
+                                </div>
 
-                                    {/* Desni panel (sekcije / potkategorije) */}
-                                    <div className="rounded-xl border bg-white p-2">
-                                        {renderRightPanel()}
-                                    </div>
+                                <div className="mt-3 text-[11px] text-zinc-500">
+                                    Savet: Sekcije koje imaju podkategorije (npr. <b>Rucak</b>, <b>Kolaci</b>, <b>Torte</b>) imaju zeleni “badge”.
                                 </div>
                             </div>
                         </div>
@@ -325,10 +264,10 @@ function RecipeFilterDesktop({ label, onPick, onSetCategory, onSetSection }) {
     );
 }
 
-/* ========================= MOBILNI (fullscreen drawer) ========================= */
-function RecipeFilterMobile({ label, onPick, onSetCategory }) {
+/* ========================= MOBILNI (FULLSCREEN) ========================= */
+function FilterMobile({ label, setCategory, setSection, setSub }) {
     const [open, setOpen] = useState(false);
-    const [path, setPath] = useState([]); // ["slano"] ili ["slatko"]
+    const [root, setRoot] = useState(""); // "slano" | "slatko"
     const reduceMotion = useReducedMotion();
 
     useEffect(() => {
@@ -338,18 +277,7 @@ function RecipeFilterMobile({ label, onPick, onSetCategory }) {
         return () => (document.body.style.overflow = prev);
     }, [open]);
 
-    const closeAll = () => { setOpen(false); setPath([]); };
-
-    const handleRootTap = (cat) => {
-        setPath([cat]);
-        onSetCategory(cat); // odmah postavi category u URL
-    };
-    const handleBack = () => setPath([]);
-
-    const handleLeafTap = (cat, leaf) => {
-        onPick?.(cat, leaf);
-        closeAll();
-    };
+    const closeAll = () => { setOpen(false); setRoot(""); };
 
     return (
         <div className="md:hidden">
@@ -383,9 +311,9 @@ function RecipeFilterMobile({ label, onPick, onSetCategory }) {
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between border-b px-4 py-3">
-                                {path.length > 0 ? (
+                                {root ? (
                                     <button
-                                        onClick={handleBack}
+                                        onClick={() => setRoot("")}
                                         className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-50"
                                     >
                                         ← Nazad
@@ -401,69 +329,60 @@ function RecipeFilterMobile({ label, onPick, onSetCategory }) {
                                 </button>
                             </div>
 
-                            {/* Putanja */}
-                            <div className="px-4 pt-3">
-                                <Trail path={path} />
-                            </div>
-
                             {/* Sadržaj */}
-                            <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 pt-2 text-zinc-800">
-                                {path.length === 0 && (
+                            <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 pt-3 text-zinc-800">
+                                {!root && (
                                     <div className="grid grid-cols-2 gap-2">
                                         {["slano", "slatko"].map((cat) => (
                                             <button
                                                 key={cat}
-                                                onClick={() => handleRootTap(cat)}
+                                                onClick={() => { setRoot(cat); setCategory(cat); }}
                                                 className="rounded-2xl border bg-white p-4 text-left text-base shadow-sm active:scale-[0.99]"
                                             >
-                                                <div className="font-semibold">{cap(cat)}</div>
+                                                <div className="font-semibold">{cat.toUpperCase()}</div>
                                                 <div className="mt-1 text-xs text-zinc-500">
-                                                    {cat === "slano"
-                                                        ? SLANO_GROUPS.reduce((acc, g) => acc + g.items.length, 0)
-                                                        : SLATKO_LIST.length}{" "}
-                                                    potkategorija
+                                                    {SECTIONS_BY_CATEGORY[cat].length} sekcija
                                                 </div>
                                             </button>
                                         ))}
                                     </div>
                                 )}
 
-                                {path.length === 1 && path[0] === "slano" && (
+                                {root && (
                                     <div className="grid grid-cols-1 gap-2">
-                                        {SLANO_GROUPS.map((g) => (
-                                            <div key={g.section} className="rounded-2xl border bg-white p-3">
-                                                <div className="mb-2 font-semibold">{g.section}</div>
-                                                <div className="grid grid-cols-1 gap-2">
-                                                    {g.items.map((sub) => (
+                                        {SECTIONS_BY_CATEGORY[root].map((sec) => {
+                                            const subs = SUBS_BY_SECTION[sec] || [];
+                                            return (
+                                                <div key={sec} className="rounded-2xl border bg-white p-3">
+                                                    <div className="mb-2 flex items-center justify-between">
+                                                        <div className="font-semibold">{sec}</div>
+                                                        <Badge tone={subs.length ? "emerald" : "zinc"}>
+                                                            {subs.length ? `${subs.length} podkategorija` : "nema podkategorija"}
+                                                        </Badge>
+                                                    </div>
+                                                    {subs.length ? (
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {subs.map((s) => (
+                                                                <button
+                                                                    key={s}
+                                                                    onClick={() => { setSub(sec, s); closeAll(); }}
+                                                                    className="w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
+                                                                >
+                                                                    {s}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
                                                         <button
-                                                            key={sub}
-                                                            onClick={() =>
-                                                                RUCKAK_SUBS.has(sub)
-                                                                    ? handleLeafTap("slano", sub)
-                                                                    : handleLeafTap("slano", g.section)
-                                                            }
-                                                            className="w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
+                                                            onClick={() => { setSection(sec); closeAll(); }}
+                                                            className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
                                                         >
-                                                            {sub}
+                                                            Prikaži {sec}
                                                         </button>
-                                                    ))}
+                                                    )}
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {path.length === 1 && path[0] === "slatko" && (
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {SLATKO_LIST.map((sub) => (
-                                            <button
-                                                key={sub}
-                                                onClick={() => handleLeafTap("slatko", sub)}
-                                                className="w-full rounded-2xl border bg-white p-4 text-left text-base active:scale-[0.99]"
-                                            >
-                                                {sub}
-                                            </button>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -476,23 +395,6 @@ function RecipeFilterMobile({ label, onPick, onSetCategory }) {
 }
 
 /* ========================= Pomoćne ========================= */
-function cap(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function Trail({ path }) {
-    if (!path?.length) return null;
-    return (
-        <div className="flex items-center gap-2 text-[12px] text-zinc-600">
-            {path.map((seg, i) => (
-                <span key={i} className="inline-flex items-center gap-2">
-                    <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-700 ring-1 ring-emerald-200 shadow-sm">
-                        {cap(seg)}
-                    </span>
-                    {i < path.length - 1 && <span>›</span>}
-                </span>
-            ))}
-            <div className="ml-2 h-0.5 w-full rounded bg-gradient-to-r from-emerald-200 to-transparent" />
-        </div>
-    );
+function Trail() {
+    return null; // (zadržano ako poželiš breadcrumb; sada ga ne renderujemo)
 }
