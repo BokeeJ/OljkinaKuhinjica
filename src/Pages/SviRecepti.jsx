@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Star, Flame, Search } from "lucide-react";
 import RecipeFilterClick from "../Components/RecipeFilterClick";
 import { normalizeSectionFE } from "../constants/taxonomy";
-import { displaySub, canon } from "../utils/text";
+import { displaySub } from "../utils/text";
 
 /* Helpers */
 const getLSArray = (key) => {
@@ -65,12 +65,12 @@ export default function SviRecepti() {
     const page = Math.max(1, Number(sp.get("page") || 1));
     const q = sp.get("q") || "";
 
-    // ⬇️ RAW vrednosti iz URL-a (ono što filteri upisuju)
+    // RAW iz URL-a – tačno ono što upisuju filteri
     const category = (sp.get("category") || "").toLowerCase();
     const sectionRaw = sp.get("section") || "";        // npr. "Rucak"
-    const subcategoryRaw = sp.get("subcategory") || ""; // npr. "supe-i-corbe" ili "Supe i čorbe"
+    const subcategoryRaw = sp.get("subcategory") || ""; // npr. "Supe i čorbe" ili "supe-i-corbe"
 
-    // ⬇️ LEPŠI prikaz za UI (badge-ovi + current props ka RecipeFilterClick)
+    // Za UI koristimo pretty section; subcategory ostaje raw za sada
     const section = normalizeSectionFE(sectionRaw);
     const subcategory = subcategoryRaw;
 
@@ -115,12 +115,11 @@ export default function SviRecepti() {
         params.set("limit", String(perPage));
 
         if (q.trim()) params.set("q", q.trim());
+        if (category) params.set("category", category);  // "slano" | "slatko"
 
-        if (category) params.set("category", category); // "slano" | "slatko"
-
-        // ⬇️ Za API šaljemo KANON od RAW vrednosti iz URL-a
-        if (sectionRaw) params.set("section", canon(sectionRaw));
-        if (subcategoryRaw) params.set("subcategory", canon(subcategoryRaw));
+        // ⬇️ OVDE JE GLAVNI FIX – šaljemo RAW vrednosti, bez canon()
+        if (sectionRaw) params.set("section", sectionRaw);
+        if (subcategoryRaw) params.set("subcategory", subcategoryRaw);
 
         (async () => {
             try {
@@ -145,7 +144,7 @@ export default function SviRecepti() {
         return () => {
             cancelled = true;
         };
-    }, [page, q, category, sectionRaw, subcategoryRaw]);
+    }, [page, q, category, sectionRaw, subcategoryRaw]); // bitno: zavisno od RAW
 
     /* Actions */
     const handleLike = async (id) => {
@@ -201,8 +200,7 @@ export default function SviRecepti() {
     };
 
     const resetFilters = () => {
-        const hadAny =
-            sp.has("category") || sp.has("section") || sp.has("subcategory");
+        const hadAny = sp.has("category") || sp.has("section") || sp.has("subcategory");
         const copy = new URLSearchParams(sp);
         copy.delete("category");
         copy.delete("section");
@@ -283,10 +281,7 @@ export default function SviRecepti() {
                         items.map((r) => {
                             const catDisp = prettyCategory(r.category);
                             const secDisp = prettySection(r.section || "");
-                            const subDisp = displaySub(
-                                r.section || "",
-                                r.subcategory || ""
-                            );
+                            const subDisp = displaySub(r.section || "", r.subcategory || "");
 
                             // sakrij badge ako bi bio duplikat (case-insensitive)
                             const showSection =
@@ -309,9 +304,7 @@ export default function SviRecepti() {
                                 >
                                     <Link
                                         to={`/recept/${r._id}${location.search}`}
-                                        state={{
-                                            from: location.pathname + location.search,
-                                        }}
+                                        state={{ from: location.pathname + location.search }}
                                     >
                                         <div className="relative">
                                             {r?.coverImage?.url && (
@@ -322,14 +315,11 @@ export default function SviRecepti() {
                                                     loading="lazy"
                                                 />
                                             )}
-                                            {r.preparationTime &&
-                                                String(
-                                                    r.preparationTime
-                                                ).trim() && (
-                                                    <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
-                                                        ⏱ {r.preparationTime}
-                                                    </span>
-                                                )}
+                                            {r.preparationTime && String(r.preparationTime).trim() && (
+                                                <span className="absolute left-2 top-2 rounded-full bg-white/90 text-zinc-900 text-[11px] px-2 py-0.5 border border-zinc-200 shadow-sm">
+                                                    ⏱ {r.preparationTime}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="p-3">
                                             <h3 className="text-zinc-900 font-semibold text-sm line-clamp-2 group-hover:text-emerald-700 transition">
@@ -360,9 +350,7 @@ export default function SviRecepti() {
                                     <div className="px-3 pb-3 flex items-center justify-between">
                                         <span className="text-[10px] text-zinc-500">
                                             {r.createdAt
-                                                ? new Date(
-                                                    r.createdAt
-                                                ).toLocaleDateString("sr-RS")
+                                                ? new Date(r.createdAt).toLocaleDateString("sr-RS")
                                                 : ""}
                                         </span>
                                         <div className="flex items-center gap-1.5">
@@ -377,9 +365,7 @@ export default function SviRecepti() {
                                                 👍 {r.likes || 0}
                                             </button>
                                             <button
-                                                onClick={() =>
-                                                    handleFavorite(r._id)
-                                                }
+                                                onClick={() => handleFavorite(r._id)}
                                                 className={`p-1 rounded-full border text-[11px] ${favSet.has(r._id)
                                                         ? "bg-emerald-600 text-white border-emerald-700"
                                                         : "bg-white/90 text-zinc-700 border-zinc-300 hover:bg-white"
@@ -414,9 +400,7 @@ export default function SviRecepti() {
                     <div className="mt-8">
                         <div className="flex flex-wrap justify-center items-center gap-1.5">
                             <button
-                                onClick={() =>
-                                    handlePageChange(Math.max(page - 1, 1))
-                                }
+                                onClick={() => handlePageChange(Math.max(page - 1, 1))}
                                 disabled={page === 1}
                                 className={`px-3 py-1.5 rounded-full text-sm ${page === 1
                                         ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
@@ -427,41 +411,32 @@ export default function SviRecepti() {
                                 ←
                             </button>
 
-                            {makePageList(totalPages, page, 9).map(
-                                (it, idx) =>
-                                    it === "…" ? (
-                                        <span
-                                            key={`dots-${idx}`}
-                                            className="px-2 py-1.5 text-sm text-zinc-400 select-none"
-                                        >
-                                            …
-                                        </span>
-                                    ) : (
-                                        <button
-                                            key={it}
-                                            onClick={() =>
-                                                handlePageChange(it)
-                                            }
-                                            className={`px-3 py-1.5 rounded-full text-sm ${page === it
-                                                    ? "bg-emerald-600 text-white"
-                                                    : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
-                                                }`}
-                                            aria-current={
-                                                page === it
-                                                    ? "page"
-                                                    : undefined
-                                            }
-                                        >
-                                            {it}
-                                        </button>
-                                    )
+                            {makePageList(totalPages, page, 9).map((it, idx) =>
+                                it === "…" ? (
+                                    <span
+                                        key={`dots-${idx}`}
+                                        className="px-2 py-1.5 text-sm text-zinc-400 select-none"
+                                    >
+                                        …
+                                    </span>
+                                ) : (
+                                    <button
+                                        key={it}
+                                        onClick={() => handlePageChange(it)}
+                                        className={`px-3 py-1.5 rounded-full text-sm ${page === it
+                                                ? "bg-emerald-600 text-white"
+                                                : "bg-white/80 border border-zinc-300 text-zinc-700 hover:bg-white"
+                                            }`}
+                                        aria-current={page === it ? "page" : undefined}
+                                    >
+                                        {it}
+                                    </button>
+                                )
                             )}
 
                             <button
                                 onClick={() =>
-                                    handlePageChange(
-                                        Math.min(page + 1, totalPages)
-                                    )
+                                    handlePageChange(Math.min(page + 1, totalPages))
                                 }
                                 disabled={page === totalPages}
                                 className={`px-3 py-1.5 rounded-full text-sm ${page === totalPages
