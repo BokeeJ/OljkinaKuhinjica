@@ -9,9 +9,6 @@ import {
 } from "../constants/taxonomy";
 import { canon } from "../utils/text"; // KANON util
 
-/**
- * Helper: da li data sekcija ima podkategorije
- */
 const hasSubs = (section) =>
     Array.isArray(SUBS_BY_SECTION[section]) && SUBS_BY_SECTION[section].length > 0;
 
@@ -23,7 +20,10 @@ const Badge = ({ children, tone = "zinc" }) => {
         pink: "bg-pink-50 text-pink-700 border-pink-200",
     };
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border ${tones[tone] || tones.zinc}`}>
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border ${tones[tone] || tones.zinc
+                }`}
+        >
             {children}
         </span>
     );
@@ -113,17 +113,16 @@ export default function RecipeFilterClick() {
             if (!hasSubs(secDisplay)) next.delete("subcategory");
         } else {
             // fallback
-            next.set("section", secDisplay);  // PRETTY
+            next.set("section", secDisplay); // PRETTY
             next.delete("subcategory");
         }
         next.set("page", "1");
         setSp(next, { replace: true });
     };
 
-    // Podkategoriju u URL upisujemo KANON; sekcija ostaje PRETTY
+    // Podkategoriju u URL upisujemo PRETTY (da se poklopi sa vrednostima u receptima)
     const setSub = (secDisplay, subDisplay) => {
         const secCanon = canon(secDisplay);
-        const subCanon = canon(subDisplay);
         const next = new URLSearchParams(sp);
 
         const inSlano = SECTIONS_BY_CATEGORY.slano.some((s) => canon(s) === secCanon);
@@ -132,8 +131,8 @@ export default function RecipeFilterClick() {
         if (inSlano) next.set("category", "slano");
         if (inSlatko) next.set("category", "slatko");
 
-        next.set("section", secDisplay);   // PRETTY
-        next.set("subcategory", subCanon); // KANON
+        next.set("section", secDisplay);      // PRETTY
+        next.set("subcategory", subDisplay);  // PRETTY (umesto subCanon)
         next.set("page", "1");
         setSp(next, { replace: true });
     };
@@ -200,7 +199,11 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
 
     const renderRight = () => {
         if (!root) {
-            return <div className="px-2 py-4 text-sm text-zinc-500">Izaberi kategoriju…</div>;
+            return (
+                <div className="px-2 py-4 text-sm text-zinc-500">
+                    Izaberi kategoriju…
+                </div>
+            );
         }
         const sections = SECTIONS_BY_CATEGORY[root] || [];
         return (
@@ -217,7 +220,9 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                                     {sec}
                                 </button>
                                 <Badge tone={subs.length ? "emerald" : "zinc"}>
-                                    {subs.length ? `${subs.length} podkategorija` : "nema podkategorija"}
+                                    {subs.length
+                                        ? `${subs.length} podkategorija`
+                                        : "nema podkategorija"}
                                 </Badge>
                             </div>
                             {subs.length > 0 && (
@@ -277,8 +282,8 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                                                 setCategory(cat);
                                             }}
                                             className={`rounded-xl px-4 py-2 text-sm font-semibold border shadow-sm ${root === cat
-                                                ? "bg-emerald-600 text-white border-emerald-700"
-                                                : "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50"
+                                                    ? "bg-emerald-600 text-white border-emerald-700"
+                                                    : "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50"
                                                 }`}
                                         >
                                             {cat.toUpperCase()}
@@ -292,7 +297,9 @@ function FilterDesktop({ label, setCategory, setSection, setSub }) {
                                 </div>
 
                                 <div className="mt-3 text-[11px] text-zinc-500">
-                                    Sekcije sa podkategorijama (npr. <b>Rucak</b>, <b>Kolaci</b>, <b>Torte</b>) imaju zeleni badge.
+                                    Sekcije sa podkategorijama (npr.{" "}
+                                    <b>Rucak</b>, <b>Kolaci</b>, <b>Torte</b>) imaju
+                                    zeleni badge.
                                 </div>
                             </div>
                         </div>
@@ -316,7 +323,10 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
         return () => (document.body.style.overflow = prev);
     }, [open]);
 
-    const closeAll = () => { setOpen(false); setRoot(""); };
+    const closeAll = () => {
+        setOpen(false);
+        setRoot("");
+    };
 
     return (
         <div className="md:hidden">
@@ -343,7 +353,10 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
-                            transition={{ type: reduceMotion ? "tween" : "spring", duration: 0.22 }}
+                            transition={{
+                                type: reduceMotion ? "tween" : "spring",
+                                duration: 0.22,
+                            }}
                             role="dialog"
                             aria-modal="true"
                             aria-label="Filter recepata"
@@ -358,7 +371,9 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                                         ← Nazad
                                     </button>
                                 ) : (
-                                    <span className="text-sm text-zinc-600">Filter</span>
+                                    <span className="text-sm text-zinc-600">
+                                        Filter
+                                    </span>
                                 )}
                                 <button
                                     onClick={closeAll}
@@ -375,10 +390,15 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                                         {["slano", "slatko"].map((cat) => (
                                             <button
                                                 key={cat}
-                                                onClick={() => { setRoot(cat); setCategory(cat); }}
+                                                onClick={() => {
+                                                    setRoot(cat);
+                                                    setCategory(cat);
+                                                }}
                                                 className="rounded-2xl border bg-white p-4 text-left text-base shadow-sm active:scale-[0.99]"
                                             >
-                                                <div className="font-semibold">{cat.toUpperCase()}</div>
+                                                <div className="font-semibold">
+                                                    {cat.toUpperCase()}
+                                                </div>
                                                 <div className="mt-1 text-xs text-zinc-500">
                                                     {SECTIONS_BY_CATEGORY[cat].length} sekcija
                                                 </div>
@@ -392,11 +412,24 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                                         {SECTIONS_BY_CATEGORY[root].map((sec) => {
                                             const subs = SUBS_BY_SECTION[sec] || [];
                                             return (
-                                                <div key={sec} className="rounded-2xl border bg-white p-3">
+                                                <div
+                                                    key={sec}
+                                                    className="rounded-2xl border bg-white p-3"
+                                                >
                                                     <div className="mb-2 flex items-center justify-between">
-                                                        <div className="font-semibold">{sec}</div>
-                                                        <Badge tone={subs.length ? "emerald" : "zinc"}>
-                                                            {subs.length ? `${subs.length} podkategorija` : "nema podkategorija"}
+                                                        <div className="font-semibold">
+                                                            {sec}
+                                                        </div>
+                                                        <Badge
+                                                            tone={
+                                                                subs.length
+                                                                    ? "emerald"
+                                                                    : "zinc"
+                                                            }
+                                                        >
+                                                            {subs.length
+                                                                ? `${subs.length} podkategorija`
+                                                                : "nema podkategorija"}
                                                         </Badge>
                                                     </div>
                                                     {subs.length ? (
@@ -404,7 +437,10 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                                                             {subs.map((s) => (
                                                                 <button
                                                                     key={s}
-                                                                    onClick={() => { setSub(sec, s); closeAll(); }}
+                                                                    onClick={() => {
+                                                                        setSub(sec, s);
+                                                                        closeAll();
+                                                                    }}
                                                                     className="w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
                                                                 >
                                                                     {s}
@@ -413,7 +449,10 @@ function FilterMobile({ label, setCategory, setSection, setSub }) {
                                                         </div>
                                                     ) : (
                                                         <button
-                                                            onClick={() => { setSection(sec); closeAll(); }}
+                                                            onClick={() => {
+                                                                setSection(sec);
+                                                                closeAll();
+                                                            }}
                                                             className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-left text-base active:scale-[0.99]"
                                                         >
                                                             Prikaži {sec}
