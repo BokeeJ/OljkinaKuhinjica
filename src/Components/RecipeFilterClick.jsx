@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
-import { canon, displaySub } from "../utils/text";
+import { displaySub } from "../utils/text"; // ⬅️ više nam ne treba canon ovde
 
 /* ---------- UI helpers ---------- */
 function Tab({ active, onClick, children }) {
@@ -71,7 +71,7 @@ export default function RecipeFilterClick() {
     // URL state
     const category = (sp.get("category") || "").toLowerCase(); // "", "slano", "slatko"
     const section = sp.get("section") || "";
-    const subcategoryCanon = sp.get("subcategory") || ""; // čuvamo kanon u URL-u
+    const subcategory = sp.get("subcategory") || ""; // ⬅️ sada RAW, ne "canon"
 
     // aktivni tab prati URL
     const [activeTab, setActiveTab] = useState(category || "");
@@ -166,20 +166,20 @@ export default function RecipeFilterClick() {
             setOnly({ category: finalCat, section: sec });
             return;
         }
-        // u URL čuvamo KANON
-        const subCanon = canon(subLabel);
-        setOnly({ category: finalCat, section: sec, subcategory: subCanon });
+
+        // ⬇️ VAŽNO: u URL sada ide NORMALAN tekst podkategorije, bez canon()
+        setOnly({ category: finalCat, section: sec, subcategory: subLabel });
     };
 
     /* ------ Label (lep prikaz) ------ */
     const label = useMemo(() => {
         const head = category ? category.toUpperCase() : "SVE";
-        const niceSub = section && subcategoryCanon ? displaySub(section, subcategoryCanon) : "";
+        const niceSub = section && subcategory ? displaySub(section, subcategory) : "";
         if (!category && !section) return "Filtriraj recepte";
         if (section && niceSub) return `${head} • ${section} • ${niceSub}`;
         if (section) return `${head} • ${section}`;
         return head;
-    }, [category, section, subcategoryCanon]);
+    }, [category, section, subcategory]);
 
     /* ------ Render ------ */
     return (
@@ -218,7 +218,7 @@ export default function RecipeFilterClick() {
                     onClickSection={clickSection}
                     onClickSub={clickSub}
                     sectionActive={(sec) => category === "slano" && section === sec}
-                    subActive={(subLabel) => category === "slano" && subcategoryCanon === canon(subLabel)}
+                    subActive={(subLabel) => category === "slano" && subcategory === trimv(subLabel)}
                 />
             )}
 
@@ -231,16 +231,26 @@ export default function RecipeFilterClick() {
                     onClickSection={clickSection}
                     onClickSub={clickSub}
                     sectionActive={(sec) => category === "slatko" && section === sec}
-                    subActive={(subLabel) => category === "slatko" && subcategoryCanon === canon(subLabel)}
+                    subActive={(subLabel) => category === "slatko" && subcategory === trimv(subLabel)}
                 />
             )}
 
             {/* aktivni čipovi */}
             <div className="flex flex-wrap gap-2">
-                {category && <Chip onClear={() => setParam("category", "")}>category: {category}</Chip>}
-                {section && <Chip onClear={clearSection /* briše i subcategory */}>section: {section}</Chip>}
-                {subcategoryCanon && (
-                    <Chip onClear={() => setParam("subcategory", "")}>subcategory: {displaySub(section, subcategoryCanon)}</Chip>
+                {category && (
+                    <Chip onClear={() => setParam("category", "")}>
+                        category: {category}
+                    </Chip>
+                )}
+                {section && (
+                    <Chip onClear={clearSection /* briše i subcategory */}>
+                        section: {section}
+                    </Chip>
+                )}
+                {subcategory && (
+                    <Chip onClear={() => setParam("subcategory", "")}>
+                        subcategory: {displaySub(section, subcategory)}
+                    </Chip>
                 )}
             </div>
         </div>
@@ -262,9 +272,18 @@ function SectionBlock({
             <div className="flex flex-wrap gap-2">
                 {sections.map((sec) => {
                     const active = sectionActive(sec);
-                    const caret = hasSubs(sec) ? (openMap[sec] ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : null;
+                    const caret = hasSubs(sec)
+                        ? openMap[sec]
+                            ? <ChevronUp size={14} />
+                            : <ChevronDown size={14} />
+                        : null;
                     return (
-                        <Pill key={sec} active={active} onClick={() => onClickSection(cat, sec)} caret={caret}>
+                        <Pill
+                            key={sec}
+                            active={active}
+                            onClick={() => onClickSection(cat, sec)}
+                            caret={caret}
+                        >
                             {sec}
                         </Pill>
                     );
