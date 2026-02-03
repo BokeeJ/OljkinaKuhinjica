@@ -12,6 +12,7 @@ import { canon, displaySub } from "../utils/text";
 const inputBase =
   "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
 const labelBase = "block text-[13px] font-semibold text-zinc-700 mb-1";
+
 const cdn = (url, w = 0) => {
   if (!url) return url;
   const i = url.indexOf("/upload/");
@@ -28,7 +29,7 @@ export default function IzmeniRecept() {
     title: "",
     category: "slano",
     section: "",
-    subcategories: [], // ✅ NOVO: multi
+    subcategories: [], // ✅ multi
     preparationTime: "",
     ingredients: "",
     instructions: "",
@@ -45,39 +46,40 @@ export default function IzmeniRecept() {
     () => SECTIONS_BY_CATEGORY[form.category] || [],
     [form.category]
   );
+
   const subs = useMemo(
     () => SUBS_BY_SECTION[form.section] || [],
     [form.section]
   );
 
-  /* ===== Učitavanje i mapiranje (legacy + dosledan kanon u state-u) ===== */
+  const hasSubs = (subs || []).length > 0;
+
+  /* ===== Učitavanje i mapiranje ===== */
   useEffect(() => {
     (async () => {
       try {
         const { data } = await axios.get(`/api/recipes/${id}`);
 
-        // 1) Sekcija: normalizuj
         const sectionNorm = normalizeSectionFE(data.section || "");
 
-        // 2) Subcategories: novo polje (array) + fallback na legacy subcategory
+        // novo polje + fallback na legacy subcategory
         const legacySingle = data.subcategory ? [data.subcategory] : [];
         const incoming = Array.isArray(data.subcategories)
           ? data.subcategories
           : legacySingle;
 
-        // U STATE čuvamo KANON vrednosti
+        // u state čuvamo kanon
         const subCanonArr = (incoming || [])
           .map((x) => canon(x))
           .filter(Boolean);
 
-        // 3) Ostalo
         const ingredientsText = (data.ingredients || []).join("\n");
 
         setForm({
           title: data.title || "",
           category: String(data.category || "slano").toLowerCase(),
           section: sectionNorm,
-          subcategories: subCanonArr, // ✅ multi
+          subcategories: subCanonArr,
           preparationTime: data.preparationTime || "",
           ingredients: ingredientsText,
           instructions: data.instructions || "",
@@ -109,17 +111,24 @@ export default function IzmeniRecept() {
     });
   };
 
-  // ✅ multi-select handler
-  const onSubsChange = (e) => {
-    const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setForm((p) => ({ ...p, subcategories: selected }));
+  // ✅ toggle bez Ctrl/Cmd (klik dodaje/uklanja)
+  const toggleSub = (value) => {
+    setForm((p) => {
+      const set = new Set(p.subcategories || []);
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      return { ...p, subcategories: Array.from(set) };
+    });
   };
+
+  const clearSubs = () => setForm((p) => ({ ...p, subcategories: [] }));
 
   const onCover = (e) => {
     const file = e.target.files?.[0];
     setCoverImage(file || null);
     setCoverPreview(file ? URL.createObjectURL(file) : "");
   };
+
   const onGallery = (e) => setGallery(Array.from(e.target.files || []));
 
   const submit = async (e) => {
@@ -127,11 +136,14 @@ export default function IzmeniRecept() {
     if (!form.section) return alert("Izaberi sekciju.");
 
     const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
-    if (requiresSub && (!Array.isArray(form.subcategories) || form.subcategories.length === 0)) {
+    if (
+      requiresSub &&
+      (!Array.isArray(form.subcategories) || form.subcategories.length === 0)
+    ) {
       return alert("Izaberi bar jednu podkategoriju.");
     }
 
-    // 🔑 šaljemo kanonske vrednosti
+    // šaljemo kanonske vrednosti
     const sectionCanon = canon(form.section);
     const subCanonArr = requiresSub
       ? (form.subcategories || []).map((x) => canon(x)).filter(Boolean)
@@ -142,7 +154,7 @@ export default function IzmeniRecept() {
     data.append("category", String(form.category || "").toLowerCase());
     data.append("section", sectionCanon);
 
-    // ✅ MULTI slanje: više puta append istog ključa (najsigurnije)
+    // ✅ MULTI slanje: više puta isti ključ
     if (requiresSub) {
       subCanonArr.forEach((s) => data.append("subcategories", s));
     }
@@ -177,8 +189,14 @@ export default function IzmeniRecept() {
       .filter(Boolean).length;
   }, [form.ingredients]);
 
-  // helper: da li ova sekcija ima subove
-  const hasSubs = (subs || []).length > 0;
+  // prikaz labela za badge (iz kanona -> lep prikaz)
+  const selectedBadges = useMemo(() => {
+    const set = new Set(form.subcategories || []);
+    return (subs || [])
+      .map((s) => ({ raw: s, v: canon(s) }))
+      .filter((x) => set.has(x.v))
+      .map((x) => ({ value: x.v, label: displaySub(form.section, x.raw) }));
+  }, [form.subcategories, subs, form.section]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
@@ -210,7 +228,7 @@ export default function IzmeniRecept() {
             />
           </div>
 
-          {/* Tabaovi */}
+          {/* Tabovi */}
           <div className="flex items-center gap-2">
             {["slano", "slatko"].map((cat) => (
               <button
@@ -241,31 +259,48 @@ export default function IzmeniRecept() {
                 className={inputBase}
               >
                 <option value="">Izaberi…</option>
-                {(SECTIONS_BY_CATEGORY[form.category] || []).map((sec) => (
+                {sections.map((sec) => (
                   <option key={sec} value={sec}>{sec}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="subcategories" className={labelBase}>Podkategorije</label>
+              <div className="flex items-baseline justify-between">
+                <label htmlFor="subcategories" className={labelBase}>Podkategorije</label>
+                {hasSubs && (
+                  <button
+                    type="button"
+                    onClick={clearSubs}
+                    className="text-[12px] text-zinc-500 hover:text-zinc-700 underline"
+                  >
+                    Očisti
+                  </button>
+                )}
+              </div>
 
               {hasSubs ? (
                 <>
                   <select
                     id="subcategories"
                     name="subcategories"
-                    multiple // ✅ multi-select
+                    multiple
                     value={form.subcategories}
-                    onChange={onSubsChange}
+                    onChange={() => {}}
                     className={inputBase}
                     size={Math.min(8, Math.max(4, subs.length))}
-                    required
                   >
                     {subs.map((s) => {
-                      const v = canon(s); // value = kanon
+                      const v = canon(s);
                       return (
-                        <option key={s} value={v}>
+                        <option
+                          key={s}
+                          value={v}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // 🔥 ne resetuj selekciju
+                            toggleSub(v);       // 🔥 toggle
+                          }}
+                        >
                           {displaySub(form.section, s)}
                         </option>
                       );
@@ -273,17 +308,17 @@ export default function IzmeniRecept() {
                   </select>
 
                   <p className="text-[12px] text-zinc-500 mt-2">
-                    Drži <b>Ctrl</b> (Windows) / <b>Cmd</b> (Mac) da selektuješ više.
+                    Klikom dodaješ/uklanjaš podkategorije (nema Ctrl/Cmd).
                   </p>
 
-                  {form.subcategories?.length > 0 && (
+                  {selectedBadges.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {form.subcategories.map((v) => (
+                      {selectedBadges.map((b) => (
                         <span
-                          key={v}
+                          key={b.value}
                           className="px-2 py-1 rounded-full bg-orange-50 text-orange-700 ring-1 ring-orange-200 text-[12px]"
                         >
-                          {displaySub(form.section, v)}
+                          {b.label}
                         </span>
                       ))}
                     </div>
@@ -387,7 +422,7 @@ export default function IzmeniRecept() {
               type="file"
               accept="image/*,video/*"
               multiple
-              onChange={(e) => onGallery(e)}
+              onChange={onGallery}
               className={`${inputBase} file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700`}
             />
             <p className="text-[12px] text-zinc-500 mt-2">
