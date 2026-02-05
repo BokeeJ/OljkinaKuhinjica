@@ -2,14 +2,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "../api";
 import { SECTIONS_BY_CATEGORY, SUBS_BY_SECTION } from "../constants/taxonomy";
-import { canon, displaySub } from "../utils/text"; // ⬅️ KANON + lep prikaz podkategorije
+import { canon, displaySub } from "../utils/text";
 
+/* UI helpers */
 const inputBase =
   "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
 const labelBase = "block text-[13px] font-semibold text-zinc-700 mb-1";
 
 const pillBase =
-  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition shadow-sm";
+  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition shadow-sm select-none";
 const pillOn = "bg-emerald-600 text-white border-emerald-600";
 const pillOff = "bg-white/90 text-zinc-800 border-zinc-300 hover:bg-white";
 
@@ -17,8 +18,14 @@ export default function AddRecipe({ onRecipeAdded }) {
   const [form, setForm] = useState({
     title: "",
     category: "slano",
+
+    // ✅ NOVO: više sekcija
+    sections: [],
+
+    // ✅ i dalje čuvamo “aktivnu” sekciju za subcategories UI (prva izabrana)
     section: "",
-    subcategories: [], // ✅ MULTI
+
+    subcategories: [], // multi subs (ako ih ima)
     preparationTime: "",
     ingredients: "",
     instructions: "",
@@ -26,20 +33,21 @@ export default function AddRecipe({ onRecipeAdded }) {
     coverImage: null,
     gallery: [],
   });
+
   const [coverPreview, setCoverPreview] = useState("");
 
-  // cleanup za preview URL (da ne curi memorija)
   useEffect(() => {
     return () => {
       if (coverPreview) URL.revokeObjectURL(coverPreview);
     };
   }, [coverPreview]);
 
-  const sections = useMemo(
+  const sectionsList = useMemo(
     () => SECTIONS_BY_CATEGORY[form.category] || [],
     [form.category]
   );
 
+  // subovi zavise od “aktivne” sekcije (prve izabrane)
   const subs = useMemo(
     () => SUBS_BY_SECTION[form.section] || [],
     [form.section]
@@ -47,15 +55,51 @@ export default function AddRecipe({ onRecipeAdded }) {
 
   const onChange = (e) => {
     const { name, value } = e.target;
+
     setForm((prev) => {
-      if (name === "category")
-        return { ...prev, category: value, section: "", subcategories: [] };
-      if (name === "section")
-        return { ...prev, section: value, subcategories: [] };
+      if (name === "category") {
+        // kad menja kategoriju, resetuj sekcije + subs
+        return {
+          ...prev,
+          category: value,
+          sections: [],
+          section: "",
+          subcategories: [],
+        };
+      }
       return { ...prev, [name]: value };
     });
   };
 
+  /* ✅ MULTI SECTIONS (pill toggle) */
+  const toggleSection = (sec) => {
+    setForm((prev) => {
+      const exists = prev.sections.includes(sec);
+
+      let nextSections;
+      if (exists) nextSections = prev.sections.filter((x) => x !== sec);
+      else nextSections = [...prev.sections, sec];
+
+      // aktivna sekcija = prva izabrana (za prikaz subs)
+      const nextActive = nextSections[0] || "";
+
+      // ako se aktivna promenila/obrisala, reset subcategories
+      const shouldResetSubs = nextActive !== prev.section;
+
+      return {
+        ...prev,
+        sections: nextSections,
+        section: nextActive,
+        subcategories: shouldResetSubs ? [] : prev.subcategories,
+      };
+    });
+  };
+
+  const clearSections = () => {
+    setForm((p) => ({ ...p, sections: [], section: "", subcategories: [] }));
+  };
+
+  /* ✅ MULTI SUBCATEGORIES (pill toggle) */
   const toggleSub = (s) => {
     setForm((prev) => {
       const exists = prev.subcategories.includes(s);
@@ -72,8 +116,6 @@ export default function AddRecipe({ onRecipeAdded }) {
 
   const onCover = (e) => {
     const file = e.target.files?.[0];
-
-    // revoke stari preview ako postoji
     if (coverPreview) URL.revokeObjectURL(coverPreview);
 
     setForm((p) => ({ ...p, coverImage: file || null }));
@@ -88,27 +130,38 @@ export default function AddRecipe({ onRecipeAdded }) {
 
     if (!form.title.trim()) return alert("Unesi naslov.");
     if (!form.coverImage) return alert("Dodaj naslovnu sliku.");
-    if (!form.section) return alert("Izaberi sekciju.");
+    if (!Array.isArray(form.sections) || form.sections.length === 0)
+      return alert("Izaberi bar jednu sekciju.");
 
-    const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
+    // subkategorije važe samo za aktivnu sekciju (prva izabrana)
+    const activeSection = form.section || form.sections[0] || "";
+    const requiresSub = (SUBS_BY_SECTION[activeSection] || []).length > 0;
+
     if (requiresSub && form.subcategories.length === 0)
       return alert("Izaberi bar jednu podkategoriju.");
 
-    // ⬇️ kanonizacija za backend (uniformno čuvanje/upit)
-    const sectionCanon = canon(form.section); // "Pite i peciva" -> "pite i peciva"
+    // kanonizacija
+    const sectionsCanon = (form.sections || [])
+      .map((x) => canon(x))
+      .filter(Boolean);
+
+    const activeSectionCanon = canon(activeSection);
+
     const subsCanon = requiresSub
-      ? form.subcategories.map((x) => canon(x)).filter(Boolean)
+      ? (form.subcategories || []).map((x) => canon(x)).filter(Boolean)
       : [];
 
     const fd = new FormData();
     fd.append("title", form.title.trim());
-    fd.append("category", String(form.category || "").toLowerCase()); // 'slano' | 'slatko'
-    fd.append("section", sectionCanon);
+    fd.append("category", String(form.category || "").toLowerCase());
 
-    // ✅ MULTI: šaljemo više vrednosti pod istim ključem
-    if (requiresSub) {
-      subsCanon.forEach((sc) => fd.append("subcategories", sc));
-    }
+    // ✅ MULTI: šaljemo više values pod istim key-om
+    sectionsCanon.forEach((sc) => fd.append("sections", sc));
+
+    // ✅ legacy kompatibilnost (backend svakako setuje, ali nije na odmet)
+    fd.append("section", activeSectionCanon);
+
+    if (requiresSub) subsCanon.forEach((s) => fd.append("subcategories", s));
 
     if (form.preparationTime)
       fd.append("preparationTime", String(form.preparationTime).trim());
@@ -129,15 +182,15 @@ export default function AddRecipe({ onRecipeAdded }) {
       const { data } = await axios.post("/api/recipes", fd);
       alert("Recept dodat!");
 
-      // ✅ refresh liste u dashboard-u (ako prosleđen prop)
       onRecipeAdded?.();
 
       const newId = data?._id || data?.id;
       if (newId) window.open(`/recept/${newId}`, "_blank", "noopener");
 
-      setForm({
+      setForm((prev) => ({
         title: "",
-        category: form.category, // zadrži aktivni tab
+        category: prev.category,
+        sections: [],
         section: "",
         subcategories: [],
         preparationTime: "",
@@ -146,7 +199,7 @@ export default function AddRecipe({ onRecipeAdded }) {
         note: "",
         coverImage: null,
         gallery: [],
-      });
+      }));
 
       if (coverPreview) URL.revokeObjectURL(coverPreview);
       setCoverPreview("");
@@ -155,6 +208,8 @@ export default function AddRecipe({ onRecipeAdded }) {
       alert(err?.response?.data?.error || "Greška pri dodavanju recepta.");
     }
   };
+
+  const activeSection = form.section || form.sections?.[0] || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
@@ -182,9 +237,7 @@ export default function AddRecipe({ onRecipeAdded }) {
               <button
                 key={cat}
                 type="button"
-                onClick={() =>
-                  onChange({ target: { name: "category", value: cat } })
-                }
+                onClick={() => onChange({ target: { name: "category", value: cat } })}
                 className={`px-4 py-2 rounded-xl text-sm shadow-sm ${
                   form.category === cat
                     ? "bg-emerald-600 text-white"
@@ -196,50 +249,82 @@ export default function AddRecipe({ onRecipeAdded }) {
             ))}
           </div>
 
-          {/* Sekcija / Podkategorije */}
+          {/* ✅ SEKCIJE (MULTI) + SUBCATEGORIES (za aktivnu sekciju) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className={labelBase} htmlFor="section">
-                Sekcija
-              </label>
-              <select
-                id="section"
-                name="section"
-                value={form.section}
-                onChange={onChange}
-                required
-                className={inputBase}
-              >
-                <option value="">Izaberi…</option>
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
-                  </option>
-                ))}
-              </select>
+              <label className={labelBase}>Sekcije (može više)</label>
+
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {sectionsList.map((sec) => {
+                    const active = form.sections.includes(sec);
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleSection(sec);
+                        }}
+                        className={`${pillBase} ${active ? pillOn : pillOff}`}
+                        aria-pressed={active}
+                        title="Može više sekcija"
+                      >
+                        <span className="text-[15px] leading-none">
+                          {active ? "✅" : "➕"}
+                        </span>
+                        <span>{sec}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {form.sections.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-zinc-600">
+                      Izabrano: <b>{form.sections.length}</b>
+                      {activeSection ? (
+                        <>
+                          {" "}
+                          • Aktivna za podkategorije: <b>{activeSection}</b>
+                        </>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        clearSections();
+                      }}
+                      className="text-xs font-semibold text-zinc-700 underline hover:text-zinc-900"
+                    >
+                      Očisti
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-[12px] text-zinc-500">
+                  Podkategorije se biraju za <b>aktivnu</b> sekciju (prva izabrana).
+                </p>
+              </div>
             </div>
 
             <div>
-              <label className={labelBase}>Podkategorije (može više)</label>
+              <label className={labelBase}>
+                Podkategorije (može više){activeSection ? ` — ${activeSection}` : ""}
+              </label>
 
               {subs.length > 0 ? (
                 <div className="space-y-2">
-                  {/* ✅ stopPropagation: da klikovi na pill ne “zatvore” parent */}
-                  <div
-                    className="flex flex-wrap gap-2"
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="flex flex-wrap gap-2">
                     {subs.map((s) => {
                       const active = form.subcategories.includes(s);
                       return (
                         <button
                           key={s}
                           type="button"
-                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.preventDefault();
-                            e.stopPropagation();
                             toggleSub(s);
                           }}
                           className={`${pillBase} ${active ? pillOn : pillOff}`}
@@ -248,7 +333,7 @@ export default function AddRecipe({ onRecipeAdded }) {
                           <span className="text-[15px] leading-none">
                             {active ? "✅" : "➕"}
                           </span>
-                          <span>{displaySub(form.section, s)}</span>
+                          <span>{displaySub(activeSection, s)}</span>
                         </button>
                       );
                     })}
@@ -261,10 +346,8 @@ export default function AddRecipe({ onRecipeAdded }) {
                       </div>
                       <button
                         type="button"
-                        onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
                           e.preventDefault();
-                          e.stopPropagation();
                           clearSubs();
                         }}
                         className="text-xs font-semibold text-zinc-700 underline hover:text-zinc-900"
@@ -277,8 +360,12 @@ export default function AddRecipe({ onRecipeAdded }) {
               ) : (
                 <input
                   disabled
-                  className={inputBase}
-                  value={form.section ? "Ova sekcija nema podkategorije." : ""}
+                  className={`${inputBase} bg-zinc-100 text-zinc-500`}
+                  value={
+                    activeSection
+                      ? "Ova sekcija nema podkategorije."
+                      : "Izaberi bar jednu sekciju."
+                  }
                   placeholder="(izaberi sekciju)"
                 />
               )}
@@ -298,11 +385,7 @@ export default function AddRecipe({ onRecipeAdded }) {
               />
               {coverPreview && (
                 <div className="mt-3 rounded-xl border overflow-hidden">
-                  <img
-                    src={coverPreview}
-                    alt="Preview"
-                    className="w-full h-44 object-cover"
-                  />
+                  <img src={coverPreview} alt="Preview" className="w-full h-44 object-cover" />
                 </div>
               )}
             </div>

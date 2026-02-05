@@ -1,3 +1,4 @@
+// src/pages/IzmeniRecept.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "../api";
@@ -12,6 +13,11 @@ import { canon, displaySub } from "../utils/text";
 const inputBase =
   "w-full rounded-xl border border-zinc-300 bg-white/90 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 px-3 py-2";
 const labelBase = "block text-[13px] font-semibold text-zinc-700 mb-1";
+
+const pillBase =
+  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition shadow-sm select-none";
+const pillOn = "bg-emerald-600 text-white border-emerald-600";
+const pillOff = "bg-white/90 text-zinc-800 border-zinc-300 hover:bg-white";
 
 const cdn = (url, w = 0) => {
   if (!url) return url;
@@ -28,8 +34,13 @@ export default function IzmeniRecept() {
   const [form, setForm] = useState({
     title: "",
     category: "slano",
+
+    // ✅ NOVO: više sekcija
+    sections: [],
+    // ✅ aktivna sekcija (prva izabrana) – za subkategorije
     section: "",
-    subcategories: [], // ✅ multi
+
+    subcategories: [], // multi
     preparationTime: "",
     ingredients: "",
     instructions: "",
@@ -42,11 +53,19 @@ export default function IzmeniRecept() {
   const [gallery, setGallery] = useState([]);
   const [existingGallery, setExistingGallery] = useState([]);
 
-  const sections = useMemo(
+  // cleanup preview
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [coverPreview]);
+
+  const sectionsList = useMemo(
     () => SECTIONS_BY_CATEGORY[form.category] || [],
     [form.category]
   );
 
+  // subovi zavise od aktivne sekcije (form.section)
   const subs = useMemo(
     () => SUBS_BY_SECTION[form.section] || [],
     [form.section]
@@ -60,25 +79,36 @@ export default function IzmeniRecept() {
       try {
         const { data } = await axios.get(`/api/recipes/${id}`);
 
-        const sectionNorm = normalizeSectionFE(data.section || "");
+        const cat = String(data.category || "slano").toLowerCase();
 
-        // novo polje + fallback na legacy subcategory
+        // ✅ sections (novo) ili fallback na section (staro)
+        const incomingSections = Array.isArray(data.sections) && data.sections.length
+          ? data.sections
+          : (data.section ? [data.section] : []);
+
+        // u FE čuvamo “display” vrednosti (normalize)
+        const secDispArr = incomingSections
+          .map((s) => normalizeSectionFE(s))
+          .filter(Boolean);
+
+        const activeSection = secDispArr[0] || "";
+
+        // subcategories (novo) + fallback legacy subcategory
         const legacySingle = data.subcategory ? [data.subcategory] : [];
-        const incoming = Array.isArray(data.subcategories)
+        const incomingSubs = Array.isArray(data.subcategories)
           ? data.subcategories
           : legacySingle;
 
         // u state čuvamo kanon
-        const subCanonArr = (incoming || [])
-          .map((x) => canon(x))
-          .filter(Boolean);
+        const subCanonArr = (incomingSubs || []).map((x) => canon(x)).filter(Boolean);
 
         const ingredientsText = (data.ingredients || []).join("\n");
 
         setForm({
           title: data.title || "",
-          category: String(data.category || "slano").toLowerCase(),
-          section: sectionNorm,
+          category: cat,
+          sections: secDispArr,          // ✅ MULTI
+          section: activeSection,        // ✅ aktivna
           subcategories: subCanonArr,
           preparationTime: data.preparationTime || "",
           ingredients: ingredientsText,
@@ -102,16 +132,47 @@ export default function IzmeniRecept() {
 
     setForm((prev) => {
       if (name === "category") {
-        return { ...prev, category: value, section: "", subcategories: [] };
+        // reset sekcija + subs
+        return {
+          ...prev,
+          category: value,
+          sections: [],
+          section: "",
+          subcategories: [],
+        };
       }
       if (name === "section") {
+        // ovo koristimo samo kao “aktivnu sekciju”
         return { ...prev, section: value, subcategories: [] };
       }
       return { ...prev, [name]: value };
     });
   };
 
-  // ✅ toggle bez Ctrl/Cmd (klik dodaje/uklanja)
+  /* ✅ MULTI SECTIONS (pill toggle) */
+  const toggleSection = (sec) => {
+    setForm((prev) => {
+      const exists = prev.sections.includes(sec);
+      const nextSections = exists
+        ? prev.sections.filter((x) => x !== sec)
+        : [...prev.sections, sec];
+
+      const nextActive = nextSections[0] || "";
+      const shouldResetSubs = nextActive !== prev.section;
+
+      return {
+        ...prev,
+        sections: nextSections,
+        section: nextActive,
+        subcategories: shouldResetSubs ? [] : prev.subcategories,
+      };
+    });
+  };
+
+  const clearSections = () =>
+    setForm((p) => ({ ...p, sections: [], section: "", subcategories: [] }));
+
+  // ✅ toggle sub (kanon)
   const toggleSub = (value) => {
     setForm((p) => {
       const set = new Set(p.subcategories || []);
@@ -125,6 +186,9 @@ export default function IzmeniRecept() {
 
   const onCover = (e) => {
     const file = e.target.files?.[0];
+
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+
     setCoverImage(file || null);
     setCoverPreview(file ? URL.createObjectURL(file) : "");
   };
@@ -133,18 +197,22 @@ export default function IzmeniRecept() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.section) return alert("Izaberi sekciju.");
 
-    const requiresSub = (SUBS_BY_SECTION[form.section] || []).length > 0;
-    if (
-      requiresSub &&
-      (!Array.isArray(form.subcategories) || form.subcategories.length === 0)
-    ) {
+    if (!Array.isArray(form.sections) || form.sections.length === 0)
+      return alert("Izaberi bar jednu sekciju.");
+
+    const activeSection = form.section || form.sections?.[0] || "";
+    if (!activeSection) return alert("Izaberi sekciju.");
+
+    const requiresSub = (SUBS_BY_SECTION[activeSection] || []).length > 0;
+    if (requiresSub && (!Array.isArray(form.subcategories) || form.subcategories.length === 0)) {
       return alert("Izaberi bar jednu podkategoriju.");
     }
 
-    // šaljemo kanonske vrednosti
-    const sectionCanon = canon(form.section);
+    // kanonizacija
+    const sectionsCanon = (form.sections || []).map((x) => canon(x)).filter(Boolean);
+    const activeSectionCanon = canon(activeSection);
+
     const subCanonArr = requiresSub
       ? (form.subcategories || []).map((x) => canon(x)).filter(Boolean)
       : [];
@@ -152,15 +220,18 @@ export default function IzmeniRecept() {
     const data = new FormData();
     data.append("title", form.title.trim());
     data.append("category", String(form.category || "").toLowerCase());
-    data.append("section", sectionCanon);
 
-    // ✅ MULTI slanje: više puta isti ključ
-    if (requiresSub) {
-      subCanonArr.forEach((s) => data.append("subcategories", s));
-    }
+    // ✅ MULTI: sections
+    sectionsCanon.forEach((s) => data.append("sections", s));
 
-    data.append("preparationTime", form.preparationTime);
-    data.append("instructions", form.instructions);
+    // ✅ legacy kompatibilnost
+    data.append("section", activeSectionCanon);
+
+    // ✅ subcategories
+    if (requiresSub) subCanonArr.forEach((s) => data.append("subcategories", s));
+
+    data.append("preparationTime", form.preparationTime || "");
+    data.append("instructions", form.instructions || "");
     data.append("note", form.note || "");
 
     (form.ingredients || "")
@@ -189,7 +260,7 @@ export default function IzmeniRecept() {
       .filter(Boolean).length;
   }, [form.ingredients]);
 
-  // prikaz labela za badge (iz kanona -> lep prikaz)
+  // badge labels za selektovane subove
   const selectedBadges = useMemo(() => {
     const set = new Set(form.subcategories || []);
     return (subs || [])
@@ -197,6 +268,8 @@ export default function IzmeniRecept() {
       .filter((x) => set.has(x.v))
       .map((x) => ({ value: x.v, label: displaySub(form.section, x.raw) }));
   }, [form.subcategories, subs, form.section]);
+
+  const activeSection = form.section || form.sections?.[0] || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 py-8 px-4">
@@ -246,28 +319,57 @@ export default function IzmeniRecept() {
             ))}
           </div>
 
-          {/* Sekcija + Podkategorije */}
+          {/* ✅ SEKCIJE (MULTI) + SUBS (za aktivnu sekciju) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="section" className={labelBase}>Sekcija</label>
-              <select
-                id="section"
-                name="section"
-                value={form.section}
-                onChange={onChange}
-                required
-                className={inputBase}
-              >
-                <option value="">Izaberi…</option>
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
-                ))}
-              </select>
-            </div>
-
+            {/* SEKCIJE */}
             <div>
               <div className="flex items-baseline justify-between">
-                <label htmlFor="subcategories" className={labelBase}>Podkategorije</label>
+                <label className={labelBase}>Sekcije (može više)</label>
+                {form.sections.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSections}
+                    className="text-[12px] text-zinc-500 hover:text-zinc-700 underline"
+                  >
+                    Očisti
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {sectionsList.map((sec) => {
+                  const on = form.sections.includes(sec);
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleSection(sec);
+                      }}
+                      className={`${pillBase} ${on ? pillOn : pillOff}`}
+                      aria-pressed={on}
+                      title="Može više sekcija"
+                    >
+                      <span className="text-[15px] leading-none">{on ? "✅" : "➕"}</span>
+                      <span>{sec}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-[12px] text-zinc-500 mt-2">
+                Aktivna za podkategorije:{" "}
+                <b>{activeSection ? activeSection : "—"}</b>
+              </p>
+            </div>
+
+            {/* PODKATEGORIJE */}
+            <div>
+              <div className="flex items-baseline justify-between">
+                <label className={labelBase}>
+                  Podkategorije{activeSection ? ` — ${activeSection}` : ""}
+                </label>
                 {hasSubs && (
                   <button
                     type="button"
@@ -297,11 +399,11 @@ export default function IzmeniRecept() {
                           key={s}
                           value={v}
                           onMouseDown={(e) => {
-                            e.preventDefault(); // 🔥 ne resetuj selekciju
-                            toggleSub(v);       // 🔥 toggle
+                            e.preventDefault();
+                            toggleSub(v);
                           }}
                         >
-                          {displaySub(form.section, s)}
+                          {displaySub(activeSection, s)}
                         </option>
                       );
                     })}
@@ -328,7 +430,11 @@ export default function IzmeniRecept() {
                 <input
                   disabled
                   className={`${inputBase} bg-zinc-100 text-zinc-500`}
-                  value={form.section ? "Ova sekcija nema podkategorije." : ""}
+                  value={
+                    activeSection
+                      ? "Ova sekcija nema podkategorije."
+                      : "Izaberi bar jednu sekciju."
+                  }
                   placeholder="(izaberi sekciju)"
                 />
               )}
