@@ -75,6 +75,15 @@ function AdminDashboard() {
     return "Bez podkategorije";
   };
 
+  // ✅ prikaz sekcija: novo sections[] ili legacy section
+  const renderSections = (recipe) => {
+    if (Array.isArray(recipe?.sections) && recipe.sections.length) {
+      return recipe.sections.join(", ");
+    }
+    if (recipe?.section) return recipe.section; // legacy
+    return "—";
+  };
+
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -134,8 +143,11 @@ function AdminDashboard() {
                   </p>
 
                   <p className="text-sm text-gray-600">
-                    📂 {recipe.category} / {recipe.section || "—"}{" "}
-                    {recipe.section ? "•" : ""} {renderSubs(recipe)}
+                    📂 {recipe.category} / {renderSections(recipe)}{" "}
+                    {(Array.isArray(recipe?.subcategories) && recipe.subcategories.length) || recipe?.subcategory
+                      ? "•"
+                      : ""}{" "}
+                    {renderSubs(recipe)}
                   </p>
                 </div>
 
