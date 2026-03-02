@@ -2,13 +2,20 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 
-axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.withCredentials = true;
-
-axios.interceptors.request.use((cfg) => {
-    const t = localStorage.getItem("admin_token");
-    if (t) cfg.headers.Authorization = `Bearer ${t}`;
-    return cfg;
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
-export default axios;
+// automatski dodaj admin token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("admin_token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export default api;
